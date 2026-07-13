@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PrintingBooksPortal.Components;
 using PrintingBooksPortal.Data;
@@ -80,9 +81,9 @@ app.MapControllers();
 
 // Login endpoint (minimal API - avoids Blazor circuit / response header conflict)
 app.MapPost("/login", async (
-    string email,
-    string password,
-    bool rememberMe,
+    [FromForm] string email,
+    [FromForm] string password,
+    [FromForm] bool rememberMe,
     SignInManager<ApplicationUser> signInManager,
     UserManager<ApplicationUser> userManager) =>
 {
