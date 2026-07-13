@@ -78,6 +78,30 @@ app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 app.MapControllers();
 
+// Login endpoint (minimal API - avoids Blazor circuit / response header conflict)
+app.MapPost("/login", async (
+    string email,
+    string password,
+    bool rememberMe,
+    SignInManager<ApplicationUser> signInManager,
+    UserManager<ApplicationUser> userManager) =>
+{
+    var result = await signInManager.PasswordSignInAsync(email, password, rememberMe, lockoutOnFailure: false);
+    if (result.Succeeded)
+    {
+        var user = await userManager.FindByEmailAsync(email);
+        if (user != null)
+        {
+            if (await userManager.IsInRoleAsync(user, "Admin"))
+                return Results.Redirect("/admin/dashboard");
+            if (await userManager.IsInRoleAsync(user, "Shop"))
+                return Results.Redirect("/shop/mybooks");
+        }
+        return Results.Redirect("/");
+    }
+    return Results.Redirect("/login?error=" + Uri.EscapeDataString("Invalid email or password"));
+});
+
 // Apply pending migrations and seed data
 try
 {
