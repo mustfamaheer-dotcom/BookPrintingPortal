@@ -80,27 +80,40 @@ app.MapRazorComponents<App>()
 app.MapControllers();
 
 // Login endpoint (minimal API - avoids Blazor circuit / response header conflict)
-app.MapPost("/login", async (HttpRequest request, SignInManager<ApplicationUser> signInManager, UserManager<ApplicationUser> userManager) =>
+app.MapPost("/login", async (HttpContext context, SignInManager<ApplicationUser> signInManager, UserManager<ApplicationUser> userManager, ILogger<Program> logger) =>
 {
-    var form = await request.ReadFormAsync();
-    var email = form["email"].FirstOrDefault() ?? "";
-    var password = form["password"].FirstOrDefault() ?? "";
-    var rememberMe = form["rememberMe"].FirstOrDefault() == "true";
-
-    var result = await signInManager.PasswordSignInAsync(email, password, rememberMe, lockoutOnFailure: false);
-    if (result.Succeeded)
+    try
     {
-        var user = await userManager.FindByEmailAsync(email);
-        if (user != null)
+        var form = await context.Request.ReadFormAsync();
+        var email = form["email"].FirstOrDefault() ?? "";
+        var password = form["password"].FirstOrDefault() ?? "";
+        var rememberMe = form["rememberMe"].FirstOrDefault() == "true";
+
+        logger.LogInformation("Login attempt for {Email}", email);
+
+        var result = await signInManager.PasswordSignInAsync(email, password, rememberMe, lockoutOnFailure: false);
+        if (result.Succeeded)
         {
-            if (await userManager.IsInRoleAsync(user, "Admin"))
-                return Results.Redirect("/admin/dashboard");
-            if (await userManager.IsInRoleAsync(user, "Shop"))
-                return Results.Redirect("/shop/mybooks");
+            logger.LogInformation("Login successful for {Email}", email);
+            var user = await userManager.FindByEmailAsync(email);
+            if (user != null)
+            {
+                if (await userManager.IsInRoleAsync(user, "Admin"))
+                    return Results.Redirect("/admin/dashboard");
+                if (await userManager.IsInRoleAsync(user, "Shop"))
+                    return Results.Redirect("/shop/mybooks");
+            }
+            return Results.Redirect("/");
         }
-        return Results.Redirect("/");
+
+        logger.LogWarning("Login failed for {Email}: {Reason}", email, result);
+        return Results.Redirect("/login?error=" + Uri.EscapeDataString("Invalid email or password"));
     }
-    return Results.Redirect("/login?error=" + Uri.EscapeDataString("Invalid email or password"));
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Login error");
+        return Results.Redirect("/login?error=" + Uri.EscapeDataString("An error occurred: " + ex.Message));
+    }
 });
 
 // Apply pending migrations and seed data
