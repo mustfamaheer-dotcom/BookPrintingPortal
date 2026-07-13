@@ -79,43 +79,6 @@ app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 app.MapControllers();
 
-// Login endpoint (minimal API - avoids Blazor circuit / response header conflict)
-app.MapPost("/login-check", async (HttpContext context, SignInManager<ApplicationUser> signInManager, UserManager<ApplicationUser> userManager, ILogger<Program> logger) =>
-{
-    try
-    {
-        var form = await context.Request.ReadFormAsync();
-        var email = form["email"].FirstOrDefault() ?? "";
-        var password = form["password"].FirstOrDefault() ?? "";
-        var rememberMe = form["rememberMe"].FirstOrDefault() == "true";
-
-        logger.LogInformation("Login attempt for {Email}", email);
-
-        var result = await signInManager.PasswordSignInAsync(email, password, rememberMe, lockoutOnFailure: false);
-        if (result.Succeeded)
-        {
-            logger.LogInformation("Login successful for {Email}", email);
-            var user = await userManager.FindByEmailAsync(email);
-            if (user != null)
-            {
-                if (await userManager.IsInRoleAsync(user, "Admin"))
-                    return Results.Redirect("/admin/dashboard");
-                if (await userManager.IsInRoleAsync(user, "Shop"))
-                    return Results.Redirect("/shop/mybooks");
-            }
-            return Results.Redirect("/");
-        }
-
-        logger.LogWarning("Login failed for {Email}: {Reason}", email, result);
-        return Results.Redirect("/login?error=" + Uri.EscapeDataString("Invalid email or password"));
-    }
-    catch (Exception ex)
-    {
-        logger.LogError(ex, "Login error");
-        return Results.Redirect("/login?error=" + Uri.EscapeDataString("An error occurred: " + ex.Message));
-    }
-});
-
 // Apply pending migrations and seed data
 try
 {
