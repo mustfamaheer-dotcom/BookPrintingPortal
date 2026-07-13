@@ -4,7 +4,7 @@ using PrintingBooksPortal.Models;
 
 namespace PrintingBooksPortal.Controllers;
 
-public class AuthController : Controller
+public class AuthController : ControllerBase
 {
     private readonly SignInManager<ApplicationUser> _signInManager;
     private readonly UserManager<ApplicationUser> _userManager;
