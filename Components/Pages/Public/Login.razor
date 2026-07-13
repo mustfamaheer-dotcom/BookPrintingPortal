@@ -18,7 +18,7 @@
                         <div class="alert alert-danger">@error</div>
                     }
 
-                    <EditForm Model="@model" OnValidSubmit="@HandleLogin">
+                    <EditForm Model="@model" OnValidSubmit="@HandleLogin" FormName="loginForm">
                         <DataAnnotationsValidator />
                         <div class="mb-3">
                             <label class="form-label">Email</label>

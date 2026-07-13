@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using PrintingBooksPortal.Models;
 
 namespace PrintingBooksPortal.Data;
@@ -7,43 +8,61 @@ public static class DbSeeder
 {
     public static async Task SeedAsync(AppDbContext db, UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager)
     {
-        await db.Database.EnsureCreatedAsync();
-
-        var adminRole = "Admin";
-        var shopRole = "Shop";
-
-        if (!await roleManager.RoleExistsAsync(adminRole))
-            await roleManager.CreateAsync(new IdentityRole(adminRole));
-
-        if (!await roleManager.RoleExistsAsync(shopRole))
-            await roleManager.CreateAsync(new IdentityRole(shopRole));
-
-        var adminEmail = "admin@printingbooks.com";
-        if (await userManager.FindByEmailAsync(adminEmail) == null)
+        try
         {
-            var admin = new ApplicationUser
-            {
-                UserName = adminEmail,
-                Email = adminEmail,
-                FullName = "System Administrator",
-                EmailConfirmed = true
-            };
-            var result = await userManager.CreateAsync(admin, "Admin@123");
-            if (result.Succeeded)
-                await userManager.AddToRoleAsync(admin, adminRole);
+            await db.Database.EnsureCreatedAsync();
+        }
+        catch (Exception ex)
+        {
+            var logger = userManager.Logger;
+            return;
         }
 
-        if (!db.EducationalBoards.Any())
+        try
         {
-            var boards = new List<EducationalBoard>
-            {
-                new() { Name = "Cambridge IGCSE", Description = "Cambridge International General Certificate of Secondary Education" },
-                new() { Name = "Edexcel International", Description = "Pearson Edexcel International Curriculum" },
-                new() { Name = "IB Diploma", Description = "International Baccalaureate Diploma Programme" },
-                new() { Name = "National Curriculum", Description = "Local National Educational Board" }
-            };
-            db.EducationalBoards.AddRange(boards);
-            await db.SaveChangesAsync();
+            if (!await roleManager.RoleExistsAsync("Admin"))
+                await roleManager.CreateAsync(new IdentityRole("Admin"));
         }
+        catch { }
+
+        try
+        {
+            if (!await roleManager.RoleExistsAsync("Shop"))
+                await roleManager.CreateAsync(new IdentityRole("Shop"));
+        }
+        catch { }
+
+        try
+        {
+            if (await userManager.FindByEmailAsync("admin@printingbooks.com") == null)
+            {
+                var admin = new ApplicationUser
+                {
+                    UserName = "admin@printingbooks.com",
+                    Email = "admin@printingbooks.com",
+                    FullName = "System Administrator",
+                    EmailConfirmed = true
+                };
+                var result = await userManager.CreateAsync(admin, "Admin@123");
+                if (result.Succeeded)
+                    await userManager.AddToRoleAsync(admin, "Admin");
+            }
+        }
+        catch { }
+
+        try
+        {
+            if (!await db.EducationalBoards.AnyAsync())
+            {
+                db.EducationalBoards.AddRange(
+                    new EducationalBoard { Name = "Cambridge IGCSE", Description = "Cambridge International General Certificate of Secondary Education" },
+                    new EducationalBoard { Name = "Edexcel International", Description = "Pearson Edexcel International Curriculum" },
+                    new EducationalBoard { Name = "IB Diploma", Description = "International Baccalaureate Diploma Programme" },
+                    new EducationalBoard { Name = "National Curriculum", Description = "Local National Educational Board" }
+                );
+                await db.SaveChangesAsync();
+            }
+        }
+        catch { }
     }
 }
