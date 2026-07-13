@@ -80,7 +80,7 @@ app.MapRazorComponents<App>()
 app.MapControllers();
 
 // Login endpoint (minimal API - avoids Blazor circuit / response header conflict)
-app.MapPost("/login", async (HttpContext context, SignInManager<ApplicationUser> signInManager, UserManager<ApplicationUser> userManager, ILogger<Program> logger) =>
+app.MapPost("/login-check", async (HttpContext context, SignInManager<ApplicationUser> signInManager, UserManager<ApplicationUser> userManager, ILogger<Program> logger) =>
 {
     try
     {
