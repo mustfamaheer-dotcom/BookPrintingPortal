@@ -80,13 +80,13 @@ app.MapRazorComponents<App>()
 app.MapControllers();
 
 // Login endpoint (minimal API - avoids Blazor circuit / response header conflict)
-app.MapPost("/login", async (
-    [FromForm] string email,
-    [FromForm] string password,
-    [FromForm] bool rememberMe,
-    SignInManager<ApplicationUser> signInManager,
-    UserManager<ApplicationUser> userManager) =>
+app.MapPost("/login", async (HttpRequest request, SignInManager<ApplicationUser> signInManager, UserManager<ApplicationUser> userManager) =>
 {
+    var form = await request.ReadFormAsync();
+    var email = form["email"].FirstOrDefault() ?? "";
+    var password = form["password"].FirstOrDefault() ?? "";
+    var rememberMe = form["rememberMe"].FirstOrDefault() == "true";
+
     var result = await signInManager.PasswordSignInAsync(email, password, rememberMe, lockoutOnFailure: false);
     if (result.Succeeded)
     {
