@@ -1,5 +1,6 @@
 @page "/admin/assignments"
 @attribute [Authorize(Roles = "Admin")]
+@rendermode InteractiveServer
 @inject AppDbContext Db
 @inject NavigationManager Navigation
 

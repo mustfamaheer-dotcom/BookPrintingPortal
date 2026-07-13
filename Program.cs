@@ -74,8 +74,7 @@ app.UseAuthorization();
 app.UseAntiforgery();
 
 app.MapStaticAssets();
-app.MapRazorComponents<App>()
-    .AddInteractiveServerRenderMode();
+app.MapRazorComponents<App>();
 app.MapControllers();
 
 // Apply pending migrations and seed data

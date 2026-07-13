@@ -1,5 +1,6 @@
 @page "/shop/viewer/{BookId:int}"
 @attribute [Authorize(Roles = "Shop")]
+@rendermode InteractiveServer
 @inject AppDbContext Db
 @inject UserManager<ApplicationUser> UserManager
 @inject AuthenticationStateProvider AuthState

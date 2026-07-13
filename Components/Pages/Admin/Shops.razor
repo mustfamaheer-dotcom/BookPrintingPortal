@@ -1,5 +1,6 @@
 @page "/admin/shops"
 @attribute [Authorize(Roles = "Admin")]
+@rendermode InteractiveServer
 @inject AppDbContext Db
 @inject UserManager<ApplicationUser> UserManager
 @inject NavigationManager Navigation

@@ -1,5 +1,6 @@
 @page "/admin/books"
 @attribute [Authorize(Roles = "Admin")]
+@rendermode InteractiveServer
 @inject AppDbContext Db
 @inject FileStorageService FileStorage
 @inject NavigationManager Navigation
