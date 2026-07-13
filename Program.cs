@@ -78,16 +78,36 @@ app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 app.MapControllers();
 
-// Database initialization with error handling
+// Apply pending migrations and seed data
 try
 {
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+
+    if (isProduction)
+    {
+        // Attempt to apply migrations (may fail if no DDL permissions)
+        try
+        {
+            await db.Database.MigrateAsync();
+            logger.LogInformation("Database migrations applied successfully.");
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Could not apply migrations automatically. Attempting EnsureCreated...");
+            await db.Database.EnsureCreatedAsync();
+        }
+    }
+    else
+    {
+        await db.Database.EnsureCreatedAsync();
+    }
+
     var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
     var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
     await DbSeeder.SeedAsync(db, userManager, roleManager);
-    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-    logger.LogInformation("Database initialization completed successfully.");
+    logger.LogInformation("Database initialization completed.");
 }
 catch (Exception ex)
 {

@@ -10,16 +10,6 @@ public static class DbSeeder
     {
         try
         {
-            await db.Database.EnsureCreatedAsync();
-        }
-        catch (Exception ex)
-        {
-            var logger = userManager.Logger;
-            return;
-        }
-
-        try
-        {
             if (!await roleManager.RoleExistsAsync("Admin"))
                 await roleManager.CreateAsync(new IdentityRole("Admin"));
         }
