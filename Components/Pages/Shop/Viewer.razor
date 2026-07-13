@@ -1,0 +1,113 @@
+@page "/shop/viewer/{BookId:int}"
+@attribute [Authorize(Roles = "Shop")]
+@inject AppDbContext Db
+@inject UserManager<ApplicationUser> UserManager
+@inject AuthenticationStateProvider AuthState
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+@inject HttpClient Http
+
+@if (!authorized)
+{
+    <div class="container mt-5">
+        <div class="alert alert-danger">You do not have access to this book.</div>
+        <a href="/shop/mybooks" class="btn btn-primary">Go Back</a>
+    </div>
+}
+else
+{
+    <div class="container-fluid p-0">
+        <nav class="navbar navbar-dark bg-dark px-3">
+            <span class="navbar-brand mb-0 h1">@bookTitle</span>
+            <div class="d-flex align-items-center">
+                <span class="text-light me-3 small">@shopName</span>
+                <div class="input-group input-group-sm me-3" style="width: 120px;">
+                    <span class="input-group-text">Copies</span>
+                    <input type="number" class="form-control form-control-sm" @bind="copies" min="1" max="100" />
+                </div>
+                <button class="btn btn-danger btn-sm" @onclick="LogAndPrint" disabled="@printing">
+                    @(printing ? "Logging..." : "Print")
+                </button>
+                <a href="/shop/mybooks" class="btn btn-outline-light btn-sm ms-2">Back</a>
+            </div>
+        </nav>
+
+        <div class="position-relative" style="height: calc(100vh - 56px);">
+            <iframe id="pdfViewer"
+                    src="@pdfUrl"
+                    style="width: 100%; height: 100%; border: none;"
+                    oncontextmenu="return false;"
+                    oncopy="return false;"
+                    oncut="return false;"
+                    onpaste="return false;">
+            </iframe>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public int BookId { get; set; }
+
+    private string? bookTitle;
+    private string? shopName;
+    private string? pdfUrl;
+    private int copies = 1;
+    private bool printing;
+    private bool authorized;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var book = await Db.Books.FindAsync(BookId);
+        if (book == null)
+        {
+            Navigation.NavigateTo("/shop/mybooks");
+            return;
+        }
+
+        bookTitle = book.Title;
+
+        var authState = await AuthState.GetAuthenticationStateAsync();
+        var user = await UserManager.GetUserAsync(authState.User);
+
+        shopName = user?.FullName ?? "User";
+
+        if (user?.ShopId == null)
+        {
+            authorized = false;
+            return;
+        }
+
+        var hasAccess = await Db.ShopBookAssignments
+            .AnyAsync(a => a.ShopId == user.ShopId && a.BookId == BookId && a.IsActive);
+
+        if (!hasAccess)
+        {
+            authorized = false;
+            return;
+        }
+
+        authorized = true;
+        pdfUrl = Navigation.ToAbsoluteUri($"/api/pdf/view/{BookId}").ToString();
+    }
+
+    private async Task LogAndPrint()
+    {
+        printing = true;
+        try
+        {
+            var response = await Http.PostAsJsonAsync($"/api/pdf/log-print/{BookId}", new { Copies = copies });
+            if (response.IsSuccessStatusCode)
+            {
+                await JS.InvokeVoidAsync("printPdf");
+            }
+        }
+        catch
+        {
+            await JS.InvokeVoidAsync("printPdf");
+        }
+        finally
+        {
+            printing = false;
+        }
+    }
+}

@@ -1,0 +1,101 @@
+@page "/login"
+@layout PublicLayout
+@inject SignInManager<ApplicationUser> SignInManager
+@inject UserManager<ApplicationUser> UserManager
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthState
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-4">
+            <div class="card shadow">
+                <div class="card-body p-4">
+                    <h3 class="text-center mb-4">PrintingBooks Portal</h3>
+                    <h5 class="text-center text-muted mb-4">Sign In</h5>
+
+                    @if (!string.IsNullOrEmpty(error))
+                    {
+                        <div class="alert alert-danger">@error</div>
+                    }
+
+                    <EditForm Model="@model" OnValidSubmit="@HandleLogin">
+                        <DataAnnotationsValidator />
+                        <div class="mb-3">
+                            <label class="form-label">Email</label>
+                            <InputText @bind-Value="model.Email" class="form-control" placeholder="Enter email" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Password</label>
+                            <InputText @bind-Value="model.Password" type="password" class="form-control" placeholder="Enter password" />
+                        </div>
+                        <div class="mb-3 form-check">
+                            <InputCheckbox @bind-Value="model.RememberMe" class="form-check-input" id="remember" />
+                            <label class="form-check-label" for="remember">Remember me</label>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100" disabled="@loading">
+                            @(loading ? "Signing in..." : "Sign In")
+                        </button>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private LoginModel model = new();
+    private string? error;
+    private bool loading;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthState.GetAuthenticationStateAsync();
+        if (authState.User.Identity?.IsAuthenticated == true)
+            Navigation.NavigateTo("/");
+    }
+
+    private async Task HandleLogin()
+    {
+        loading = true;
+        error = null;
+
+        try
+        {
+            var result = await SignInManager.PasswordSignInAsync(
+                model.Email, model.Password, model.RememberMe, lockoutOnFailure: false);
+
+            if (result.Succeeded)
+            {
+                var user = await UserManager.FindByEmailAsync(model.Email);
+                if (user != null)
+                {
+                    if (await UserManager.IsInRoleAsync(user, "Admin"))
+                        Navigation.NavigateTo("/admin/dashboard", forceLoad: true);
+                    else if (await UserManager.IsInRoleAsync(user, "Shop"))
+                        Navigation.NavigateTo("/shop/mybooks", forceLoad: true);
+                    else
+                        Navigation.NavigateTo("/", forceLoad: true);
+                }
+            }
+            else
+            {
+                error = "Invalid email or password.";
+            }
+        }
+        catch (Exception ex)
+        {
+            error = $"An error occurred: {ex.Message}";
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private class LoginModel
+    {
+        public string Email { get; set; } = "";
+        public string Password { get; set; } = "";
+        public bool RememberMe { get; set; }
+    }
+}

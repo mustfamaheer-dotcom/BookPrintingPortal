@@ -1,0 +1,246 @@
+@page "/admin/shops"
+@attribute [Authorize(Roles = "Admin")]
+@inject AppDbContext Db
+@inject UserManager<ApplicationUser> UserManager
+@inject NavigationManager Navigation
+
+<div class="container-fluid py-4">
+    <h1 class="mb-4">Bookshops</h1>
+
+    @if (!string.IsNullOrEmpty(message))
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @message
+            <button type="button" class="btn-close" @onclick="() => message = null"></button>
+        </div>
+    }
+    @if (!string.IsNullOrEmpty(error))
+    {
+        <div class="alert alert-danger">@error</div>
+    }
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5>@(editing ? "Edit Bookshop" : "Add New Bookshop")</h5>
+        </div>
+        <div class="card-body">
+            <EditForm Model="@editModel" OnValidSubmit="@SaveShop">
+                <DataAnnotationsValidator />
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Shop Name</label>
+                        <InputText @bind-Value="editModel.Name" class="form-control" required />
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Phone</label>
+                        <InputText @bind-Value="editModel.Phone" class="form-control" />
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Address</label>
+                    <InputText @bind-Value="editModel.Address" class="form-control" />
+                </div>
+                @if (!editing)
+                {
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Login Email</label>
+                            <InputText @bind-Value="editModel.Email" type="email" class="form-control" required />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Login Password</label>
+                            <InputText @bind-Value="editModel.Password" type="password" class="form-control" required />
+                        </div>
+                    </div>
+                    <small class="text-muted">A user account will be created for this shop with these credentials.</small>
+                }
+                <div class="mt-3">
+                    <button type="submit" class="btn btn-primary">@(editing ? "Update" : "Create")</button>
+                    @if (editing)
+                    {
+                        <button type="button" class="btn btn-secondary" @onclick="CancelEdit">Cancel</button>
+                    }
+                </div>
+            </EditForm>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            @if (shops == null)
+            {
+                <p>Loading...</p>
+            }
+            else
+            {
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Address</th>
+                            <th>Phone</th>
+                            <th>Status</th>
+                            <th>Created</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var shop in shops)
+                        {
+                            <tr>
+                                <td>@shop.Id</td>
+                                <td>@shop.Name</td>
+                                <td>@shop.Address</td>
+                                <td>@shop.Phone</td>
+                                <td>
+                                    <span class="badge @(shop.IsActive ? "bg-success" : "bg-secondary")">
+                                        @(shop.IsActive ? "Active" : "Inactive")
+                                    </span>
+                                </td>
+                                <td>@shop.CreatedAt.ToLocalTime().ToString("d")</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary me-1" @onclick="() => EditShop(shop)">Edit</button>
+                                    <button class="btn btn-sm btn-outline-warning me-1" @onclick="() => ToggleShop(shop)">@(shop.IsActive ? "Deactivate" : "Activate")</button>
+                                    <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteShop(shop)">Delete</button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<Shop>? shops;
+    private ShopEditModel editModel = new();
+    private bool editing;
+    private int editingId;
+    private string? message;
+    private string? error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadShops();
+    }
+
+    private async Task LoadShops()
+    {
+        shops = await Db.Shops.OrderBy(s => s.Name).ToListAsync<Shop>();
+    }
+
+    private void EditShop(Shop shop)
+    {
+        editing = true;
+        editingId = shop.Id;
+        editModel.Name = shop.Name;
+        editModel.Address = shop.Address;
+        editModel.Phone = shop.Phone;
+    }
+
+    private void CancelEdit()
+    {
+        editing = false;
+        editingId = 0;
+        editModel = new();
+        error = null;
+    }
+
+    private async Task SaveShop()
+    {
+        error = null;
+
+        if (editing)
+        {
+            var shop = await Db.Shops.FindAsync(editingId);
+            if (shop != null)
+            {
+                shop.Name = editModel.Name;
+                shop.Address = editModel.Address;
+                shop.Phone = editModel.Phone;
+                message = "Shop updated successfully.";
+            }
+        }
+        else
+        {
+            if (string.IsNullOrWhiteSpace(editModel.Email) || string.IsNullOrWhiteSpace(editModel.Password))
+            {
+                error = "Email and password are required for new shops.";
+                return;
+            }
+
+            var existingUser = await UserManager.FindByEmailAsync(editModel.Email);
+            if (existingUser != null)
+            {
+                error = "A user with this email already exists.";
+                return;
+            }
+
+            var shop = new Shop
+            {
+                Name = editModel.Name,
+                Address = editModel.Address,
+                Phone = editModel.Phone
+            };
+            Db.Shops.Add(shop);
+            await Db.SaveChangesAsync();
+
+            var user = new ApplicationUser
+            {
+                UserName = editModel.Email,
+                Email = editModel.Email,
+                FullName = editModel.Name,
+                ShopId = shop.Id,
+                EmailConfirmed = true
+            };
+
+            var result = await UserManager.CreateAsync(user, editModel.Password);
+            if (result.Succeeded)
+            {
+                await UserManager.AddToRoleAsync(user, "Shop");
+                message = $"Shop '{shop.Name}' created with login: {editModel.Email}";
+            }
+            else
+            {
+                Db.Shops.Remove(shop);
+                await Db.SaveChangesAsync();
+                error = $"Failed to create user: {string.Join(", ", result.Errors.Select(e => e.Description))}";
+                return;
+            }
+        }
+
+        await Db.SaveChangesAsync();
+        await LoadShops();
+        CancelEdit();
+    }
+
+    private async Task ToggleShop(Shop shop)
+    {
+        shop.IsActive = !shop.IsActive;
+        await Db.SaveChangesAsync();
+        await LoadShops();
+    }
+
+    private async Task DeleteShop(Shop shop)
+    {
+        var users = await UserManager.Users.Where(u => u.ShopId == shop.Id).ToListAsync();
+        foreach (var user in users)
+            await UserManager.DeleteAsync(user);
+
+        Db.Shops.Remove(shop);
+        await Db.SaveChangesAsync();
+        await LoadShops();
+        message = "Shop deleted.";
+    }
+
+    private class ShopEditModel
+    {
+        public string Name { get; set; } = "";
+        public string? Address { get; set; }
+        public string? Phone { get; set; }
+        public string? Email { get; set; }
+        public string? Password { get; set; }
+    }
+}

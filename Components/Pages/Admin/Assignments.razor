@@ -1,0 +1,97 @@
+@page "/admin/assignments"
+@attribute [Authorize(Roles = "Admin")]
+@inject AppDbContext Db
+@inject NavigationManager Navigation
+
+<div class="container-fluid py-4">
+    <h1 class="mb-4">Assign Books to Shops</h1>
+
+    @if (!string.IsNullOrEmpty(message))
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @message
+            <button type="button" class="btn-close" @onclick="() => message = null"></button>
+        </div>
+    }
+
+    <div class="row">
+        @if (shops != null)
+        {
+            @foreach (var shop in shops.Where(s => s.IsActive))
+            {
+                <div class="col-md-6 mb-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">@shop.Name</h5>
+                        </div>
+                        <div class="card-body">
+                            @if (books != null)
+                            {
+                                @foreach (var book in books.Where(b => b.IsActive))
+                                {
+                                    var isAssigned = assignedBooks.ContainsKey($"{shop.Id}-{book.Id}");
+                                    <div class="form-check mb-2">
+                                        <input type="checkbox" class="form-check-input"
+                                               id="assign-@shop.Id-@book.Id"
+                                               checked="@isAssigned"
+                                               @onchange="e => ToggleAssignment(shop.Id, book.Id, (bool)(e.Value ?? false))" />
+                                        <label class="form-check-label" for="assign-@shop.Id-@book.Id">
+                                            <strong>@book.Title</strong>
+                                            <small class="text-muted"> (@book.Board?.Name)</small>
+                                        </label>
+                                    </div>
+                                }
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+    </div>
+</div>
+
+@code {
+    private List<Shop>? shops;
+    private List<Book>? books;
+    private Dictionary<string, bool> assignedBooks = new();
+    private string? message;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        shops = await Db.Shops.OrderBy(s => s.Name).ToListAsync<Shop>();
+        books = await Db.Books.Include(b => b.Board).OrderBy(b => b.Title).ToListAsync<Book>();
+        var assignments = await Db.ShopBookAssignments.Where(a => a.IsActive).ToListAsync<ShopBookAssignment>();
+
+        assignedBooks = new Dictionary<string, bool>();
+        foreach (var a in assignments)
+            assignedBooks[$"{a.ShopId}-{a.BookId}"] = true;
+    }
+
+    private async Task ToggleAssignment(int shopId, int bookId, bool assigned)
+    {
+        var existing = await Db.ShopBookAssignments
+            .FirstOrDefaultAsync(a => a.ShopId == shopId && a.BookId == bookId);
+
+        if (assigned && existing == null)
+        {
+            Db.ShopBookAssignments.Add(new ShopBookAssignment
+            {
+                ShopId = shopId,
+                BookId = bookId
+            });
+        }
+        else if (!assigned && existing != null)
+        {
+            Db.ShopBookAssignments.Remove(existing);
+        }
+
+        await Db.SaveChangesAsync();
+        assignedBooks[$"{shopId}-{bookId}"] = assigned;
+        message = "Assignment updated.";
+    }
+}

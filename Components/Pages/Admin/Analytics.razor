@@ -1,0 +1,165 @@
+@page "/admin/analytics"
+@attribute [Authorize(Roles = "Admin")]
+@inject AppDbContext Db
+@inject PrintLoggingService PrintLogging
+@inject NavigationManager Navigation
+
+<div class="container-fluid py-4">
+    <h1 class="mb-4">Analytics Dashboard</h1>
+
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card text-bg-primary">
+                <div class="card-body">
+                    <h5>Total Prints</h5>
+                    <h2>@totalPrints</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card text-bg-success">
+                <div class="card-body">
+                    <h5>Active Shops</h5>
+                    <h2>@activeShops</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card text-bg-info">
+                <div class="card-body">
+                    <h5>Total Books</h5>
+                    <h2>@totalBooks</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card text-bg-warning">
+                <div class="card-body">
+                    <h5>Total Logs</h5>
+                    <h2>@totalLogs</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header"><h5>Prints per Shop</h5></div>
+                <div class="card-body">
+                    @if (printsPerShop != null && printsPerShop.Any())
+                    {
+                        <table class="table table-sm">
+                            <thead><tr><th>Shop</th><th>Total Prints</th></tr></thead>
+                            <tbody>
+                                @foreach (var item in printsPerShop.OrderByDescending(x => x.Value))
+                                {
+                                    <tr>
+                                        <td>@item.Key</td>
+                                        <td><strong>@item.Value</strong></td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                    else
+                    {
+                        <p class="text-muted">No print data yet.</p>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header"><h5>Prints per Book</h5></div>
+                <div class="card-body">
+                    @if (printsPerBook != null && printsPerBook.Any())
+                    {
+                        <table class="table table-sm">
+                            <thead><tr><th>Book</th><th>Total Prints</th></tr></thead>
+                            <tbody>
+                                @foreach (var item in printsPerBook.OrderByDescending(x => x.Value))
+                                {
+                                    <tr>
+                                        <td>@item.Key</td>
+                                        <td><strong>@item.Value</strong></td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                    else
+                    {
+                        <p class="text-muted">No print data yet.</p>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header"><h5>Recent Print Logs</h5></div>
+        <div class="card-body">
+            @if (recentLogs == null)
+            {
+                <p>Loading...</p>
+            }
+            else if (!recentLogs.Any())
+            {
+                <p class="text-muted">No logs yet.</p>
+            }
+            else
+            {
+                <div style="max-height: 400px; overflow-y: auto;">
+                    <table class="table table-sm table-striped">
+                        <thead>
+                            <tr>
+                                <th>Date/Time</th>
+                                <th>Shop</th>
+                                <th>Book</th>
+                                <th>Copies</th>
+                                <th>User</th>
+                                <th>IP</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var log in recentLogs)
+                            {
+                                <tr>
+                                    <td>@log.PrintedAt.ToLocalTime().ToString("g")</td>
+                                    <td>@log.ShopName</td>
+                                    <td>@log.BookTitle</td>
+                                    <td>@log.Copies</td>
+                                    <td>@log.PrintedByUserName</td>
+                                    <td><code>@log.IPAddress</code></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private int totalPrints;
+    private int activeShops;
+    private int totalBooks;
+    private int totalLogs;
+    private Dictionary<string, int>? printsPerShop;
+    private Dictionary<string, int>? printsPerBook;
+    private List<PrintLog>? recentLogs;
+
+    protected override async Task OnInitializedAsync()
+    {
+        totalPrints = await PrintLogging.GetTotalPrintsAsync();
+        activeShops = await Db.Shops.CountAsync(s => s.IsActive);
+        totalBooks = await Db.Books.CountAsync(b => b.IsActive);
+        totalLogs = await Db.PrintLogs.CountAsync();
+        printsPerShop = await PrintLogging.GetPrintsPerShopAsync();
+        printsPerBook = await PrintLogging.GetPrintsPerBookAsync();
+        recentLogs = await PrintLogging.GetRecentLogsAsync(100);
+    }
+}

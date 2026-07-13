@@ -1,14 +1,31 @@
 ﻿@inherits LayoutComponentBase
+@inject NavigationManager Navigation
+@inject SignInManager<ApplicationUser> SignInManager
+@inject UserManager<ApplicationUser> UserManager
 
 <div class="page">
-    <div class="sidebar">
-        <NavMenu />
-    </div>
+    @if (showSidebar)
+    {
+        <div class="sidebar">
+            <NavMenu />
+        </div>
+    }
 
     <main>
-        <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
-        </div>
+        @if (showTopBar)
+        {
+            <div class="top-row px-4 auth-bar">
+                <AuthorizeView>
+                    <Authorized>
+                        <span class="me-3 text-muted">Hello, @context.User.Identity?.Name</span>
+                        <a href="/logout" class="btn btn-outline-danger btn-sm">Logout</a>
+                    </Authorized>
+                    <NotAuthorized>
+                        <a href="/login" class="btn btn-outline-primary btn-sm">Login</a>
+                    </NotAuthorized>
+                </AuthorizeView>
+            </div>
+        }
 
         <article class="content px-4">
             @Body
@@ -21,3 +38,17 @@
     <a href="." class="reload">Reload</a>
     <span class="dismiss">🗙</span>
 </div>
+
+@code {
+    private bool showSidebar = true;
+    private bool showTopBar = true;
+
+    protected override void OnInitialized()
+    {
+        var path = new Uri(Navigation.Uri).AbsolutePath;
+        showSidebar = !path.StartsWith("/login", StringComparison.OrdinalIgnoreCase)
+                   && !path.StartsWith("/access-denied", StringComparison.OrdinalIgnoreCase)
+                   && !path.StartsWith("/shop/viewer", StringComparison.OrdinalIgnoreCase);
+        showTopBar = showSidebar;
+    }
+}

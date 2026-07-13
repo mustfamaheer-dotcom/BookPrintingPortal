@@ -1,7 +1,41 @@
 ﻿@page "/"
+@layout PublicLayout
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthState
 
-<PageTitle>Home</PageTitle>
+<div class="container mt-5 text-center">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <h1 class="display-4 mb-4">PrintingBooks Portal</h1>
+            <p class="lead mb-4">Secure centralized printing management platform for educators and bookshops.</p>
 
-<h1>Hello, world!</h1>
+            @if (isAuthenticated)
+            {
+                <AuthorizeView Roles="Admin">
+                    <Authorized>
+                        <a href="/admin/dashboard" class="btn btn-primary btn-lg me-2">Admin Dashboard</a>
+                    </Authorized>
+                </AuthorizeView>
+                <AuthorizeView Roles="Shop">
+                    <Authorized>
+                        <a href="/shop/mybooks" class="btn btn-success btn-lg">My Books</a>
+                    </Authorized>
+                </AuthorizeView>
+            }
+            else
+            {
+                <a href="/login" class="btn btn-primary btn-lg">Sign In</a>
+            }
+        </div>
+    </div>
+</div>
 
-Welcome to your new app.
+@code {
+    private bool isAuthenticated;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthState.GetAuthenticationStateAsync();
+        isAuthenticated = authState.User.Identity?.IsAuthenticated ?? false;
+    }
+}

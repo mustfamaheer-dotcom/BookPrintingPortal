@@ -1,0 +1,229 @@
+@page "/admin/books"
+@attribute [Authorize(Roles = "Admin")]
+@inject AppDbContext Db
+@inject FileStorageService FileStorage
+@inject NavigationManager Navigation
+
+<div class="container-fluid py-4">
+    <h1 class="mb-4">Books</h1>
+
+    @if (!string.IsNullOrEmpty(message))
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @message
+            <button type="button" class="btn-close" @onclick="() => message = null"></button>
+        </div>
+    }
+    @if (!string.IsNullOrEmpty(error))
+    {
+        <div class="alert alert-danger">@error</div>
+    }
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5>Upload New Book</h5>
+        </div>
+        <div class="card-body">
+            <EditForm Model="@uploadModel" OnValidSubmit="@UploadBook">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Book Title</label>
+                        <InputText @bind-Value="uploadModel.Title" class="form-control" required />
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Educational Board</label>
+                        <select class="form-select" @bind="uploadModel.BoardId">
+                            <option value="0">-- Select Board --</option>
+                            @foreach (var board in boards)
+                            {
+                                <option value="@board.Id">@board.Name</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-2 mb-3">
+                        <label class="form-label">Page Count</label>
+                        <InputNumber @bind-Value="uploadModel.PageCount" class="form-control" />
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">PDF File</label>
+                    <InputFile OnChange="@OnFileSelected" class="form-control" accept=".pdf" />
+                </div>
+                <button type="submit" class="btn btn-primary" disabled="@loading">
+                    @(loading ? "Uploading..." : "Upload Book")
+                </button>
+            </EditForm>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            @if (books == null)
+            {
+                <p>Loading...</p>
+            }
+            else if (!books.Any())
+            {
+                <p class="text-muted">No books uploaded yet.</p>
+            }
+            else
+            {
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Title</th>
+                            <th>Board</th>
+                            <th>Size</th>
+                            <th>Pages</th>
+                            <th>Status</th>
+                            <th>Uploaded</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var book in books)
+                        {
+                            <tr>
+                                <td>@book.Id</td>
+                                <td>@book.Title</td>
+                                <td>@book.Board?.Name</td>
+                                <td>@FormatSize(book.FileSizeBytes)</td>
+                                <td>@book.PageCount</td>
+                                <td>
+                                    <span class="badge @(book.IsActive ? "bg-success" : "bg-secondary")">
+                                        @(book.IsActive ? "Active" : "Inactive")
+                                    </span>
+                                </td>
+                                <td>@book.CreatedAt.ToLocalTime().ToString("d")</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteBook(book)">Delete</button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<Book>? books;
+    private List<EducationalBoard> boards = new();
+    private BookUploadModel uploadModel = new();
+    private IBrowserFile? selectedFile;
+    private bool loading;
+    private string? message;
+    private string? error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        boards = await Db.EducationalBoards.Where(b => b.IsActive).ToListAsync<EducationalBoard>();
+        books = await Db.Books.Include(b => b.Board).OrderByDescending(b => b.CreatedAt).ToListAsync<Book>();
+    }
+
+    private void OnFileSelected(InputFileChangeEventArgs e)
+    {
+        selectedFile = e.File;
+    }
+
+    private async Task UploadBook()
+    {
+        error = null;
+        loading = true;
+
+        try
+        {
+            if (uploadModel.BoardId == 0)
+            {
+                error = "Please select a board.";
+                return;
+            }
+
+            if (selectedFile == null)
+            {
+                error = "Please select a PDF file.";
+                return;
+            }
+
+            if (!selectedFile.ContentType.Equals("application/pdf", StringComparison.OrdinalIgnoreCase))
+            {
+                error = "Only PDF files are allowed.";
+                return;
+            }
+
+            // Save file using a memory stream to convert IBrowserFile to IFormFile-compatible
+            var tempPath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.pdf");
+            await using (var stream = new FileStream(tempPath, FileMode.Create))
+            {
+                await selectedFile.OpenReadStream(100 * 1024 * 1024).CopyToAsync(stream);
+            }
+
+            var finalFileName = $"{Guid.NewGuid():N}.pdf";
+            var booksDir = Path.Combine(Directory.GetCurrentDirectory(), "App_Data", "Books");
+            Directory.CreateDirectory(booksDir);
+            var finalPath = Path.Combine(booksDir, finalFileName);
+            System.IO.File.Move(tempPath, finalPath);
+
+            var book = new Book
+            {
+                Title = uploadModel.Title,
+                BoardId = uploadModel.BoardId,
+                FilePath = finalFileName,
+                OriginalFileName = selectedFile.Name,
+                FileSizeBytes = new FileInfo(finalPath).Length,
+                PageCount = uploadModel.PageCount
+            };
+
+            Db.Books.Add(book);
+            await Db.SaveChangesAsync();
+
+            message = $"Book '{uploadModel.Title}' uploaded successfully.";
+            uploadModel = new();
+            selectedFile = null;
+            await LoadData();
+        }
+        catch (Exception ex)
+        {
+            error = $"Upload failed: {ex.Message}";
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private async Task DeleteBook(Book book)
+    {
+        Db.Books.Remove(book);
+        var filePath = Path.Combine(Directory.GetCurrentDirectory(), "App_Data", "Books", book.FilePath);
+        if (System.IO.File.Exists(filePath))
+            System.IO.File.Delete(filePath);
+        await Db.SaveChangesAsync();
+        await LoadData();
+        message = $"Book '{book.Title}' deleted.";
+    }
+
+    private static string FormatSize(long bytes)
+    {
+        return bytes switch
+        {
+            >= 1_000_000 => $"{bytes / 1_000_000.0:F1} MB",
+            >= 1_000 => $"{bytes / 1_000.0:F1} KB",
+            _ => $"{bytes} B"
+        };
+    }
+
+    private class BookUploadModel
+    {
+        public string Title { get; set; } = "";
+        public int BoardId { get; set; }
+        public int PageCount { get; set; }
+    }
+}

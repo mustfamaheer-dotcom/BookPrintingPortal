@@ -1,0 +1,103 @@
+@page "/shop/mybooks"
+@attribute [Authorize(Roles = "Shop")]
+@inject AppDbContext Db
+@inject UserManager<ApplicationUser> UserManager
+@inject AuthenticationStateProvider AuthState
+@inject NavigationManager Navigation
+
+<div class="container-fluid py-4">
+    <h1 class="mb-4">My Assigned Books</h1>
+
+    @if (error != null)
+    {
+        <div class="alert alert-danger">@error</div>
+    }
+
+    @if (booksByBoard == null)
+    {
+        <p>Loading your books...</p>
+    }
+    else if (!booksByBoard.Any())
+    {
+        <div class="alert alert-info">
+            No books have been assigned to your shop yet. Please contact the administrator.
+        </div>
+    }
+    else
+    {
+        @foreach (var group in booksByBoard)
+        {
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h4 class="mb-0">@group.BoardName</h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        @foreach (var book in group.Books)
+                        {
+                            <div class="col-md-4 col-lg-3 mb-3">
+                                <div class="card h-100">
+                                    <div class="card-body d-flex flex-column">
+                                        <h5 class="card-title">@book.Title</h5>
+                                        <p class="card-text text-muted small flex-grow-1">
+                                            @book.PageCount pages
+                                        </p>
+                                        <a href="/shop/viewer/@book.Id" class="btn btn-primary btn-sm" target="_blank">
+                                            Open & Print
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    private List<BoardGroup>? booksByBoard;
+    private string? error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var authState = await AuthState.GetAuthenticationStateAsync();
+            var user = await UserManager.GetUserAsync(authState.User);
+
+            if (user?.ShopId == null)
+            {
+                error = "Your account is not linked to any shop.";
+                return;
+            }
+
+            var assignments = await Db.ShopBookAssignments
+                .Where(a => a.ShopId == user.ShopId && a.IsActive)
+                .Include(a => a.Book)
+                    .ThenInclude(b => b.Board)
+                .Where(a => a.Book.IsActive)
+                .ToListAsync<ShopBookAssignment>();
+
+            booksByBoard = assignments
+                .GroupBy(a => a.Book.Board.Name)
+                .Select(g => new BoardGroup
+                {
+                    BoardName = g.Key,
+                    Books = g.Select(a => a.Book).ToList()
+                })
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            error = $"Error loading books: {ex.Message}";
+        }
+    }
+
+    private class BoardGroup
+    {
+        public string BoardName { get; set; } = "";
+        public List<Book> Books { get; set; } = new();
+    }
+}

@@ -1,0 +1,159 @@
+@page "/admin/boards"
+@attribute [Authorize(Roles = "Admin")]
+@inject AppDbContext Db
+@inject NavigationManager Navigation
+
+<div class="container-fluid py-4">
+    <h1 class="mb-4">Educational Boards</h1>
+
+    @if (!string.IsNullOrEmpty(message))
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @message
+            <button type="button" class="btn-close" @onclick="() => message = null"></button>
+        </div>
+    }
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5>@(editing ? "Edit Board" : "Add New Board")</h5>
+        </div>
+        <div class="card-body">
+            <EditForm Model="@editModel" OnValidSubmit="@SaveBoard">
+                <DataAnnotationsValidator />
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Board Name</label>
+                        <InputText @bind-Value="editModel.Name" class="form-control" required />
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Description</label>
+                        <InputText @bind-Value="editModel.Description" class="form-control" />
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary">@(editing ? "Update" : "Create")</button>
+                @if (editing)
+                {
+                    <button type="button" class="btn btn-secondary" @onclick="CancelEdit">Cancel</button>
+                }
+            </EditForm>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            @if (boards == null)
+            {
+                <p>Loading...</p>
+            }
+            else
+            {
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Description</th>
+                            <th>Active</th>
+                            <th>Books</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var board in boards)
+                        {
+                            <tr>
+                                <td>@board.Id</td>
+                                <td>@board.Name</td>
+                                <td>@board.Description</td>
+                                <td>
+                                    <span class="badge @(board.IsActive ? "bg-success" : "bg-secondary")">
+                                        @(board.IsActive ? "Active" : "Inactive")
+                                    </span>
+                                </td>
+                                <td>@board.Books?.Count ?? 0</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary me-1" @onclick="() => EditBoard(board)">Edit</button>
+                                    <button class="btn btn-sm btn-outline-danger" @onclick="() => ToggleBoard(board)">@(board.IsActive ? "Deactivate" : "Activate")</button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<EducationalBoard>? boards;
+    private BoardEditModel editModel = new();
+    private bool editing;
+    private int editingId;
+    private string? message;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadBoards();
+    }
+
+    private async Task LoadBoards()
+    {
+        boards = await Db.EducationalBoards.OrderBy(b => b.Name).Include(b => b.Books).ToListAsync();
+    }
+
+    private void EditBoard(EducationalBoard board)
+    {
+        editing = true;
+        editingId = board.Id;
+        editModel.Name = board.Name;
+        editModel.Description = board.Description;
+    }
+
+    private void CancelEdit()
+    {
+        editing = false;
+        editingId = 0;
+        editModel = new();
+    }
+
+    private async Task SaveBoard()
+    {
+        if (editing)
+        {
+            var board = await Db.EducationalBoards.FindAsync(editingId);
+            if (board != null)
+            {
+                board.Name = editModel.Name;
+                board.Description = editModel.Description;
+                message = "Board updated successfully.";
+            }
+        }
+        else
+        {
+            Db.EducationalBoards.Add(new EducationalBoard
+            {
+                Name = editModel.Name,
+                Description = editModel.Description
+            });
+            message = "Board created successfully.";
+        }
+
+        await Db.SaveChangesAsync();
+        await LoadBoards();
+        CancelEdit();
+    }
+
+    private async Task ToggleBoard(EducationalBoard board)
+    {
+        board.IsActive = !board.IsActive;
+        await Db.SaveChangesAsync();
+        await LoadBoards();
+    }
+
+    private class BoardEditModel
+    {
+        public string Name { get; set; } = "";
+        public string? Description { get; set; }
+    }
+}

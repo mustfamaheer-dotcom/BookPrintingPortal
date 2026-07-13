@@ -1,0 +1,63 @@
+@page "/shop/history"
+@attribute [Authorize(Roles = "Shop")]
+@inject AppDbContext Db
+@inject UserManager<ApplicationUser> UserManager
+@inject AuthenticationStateProvider AuthState
+@inject PrintLoggingService PrintLogging
+
+<div class="container-fluid py-4">
+    <h1 class="mb-4">My Print History</h1>
+
+    @if (logs == null)
+    {
+        <p>Loading...</p>
+    }
+    else if (!logs.Any())
+    {
+        <div class="alert alert-info">No print activity yet.</div>
+    }
+    else
+    {
+        <div class="card">
+            <div class="card-body">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Date/Time</th>
+                            <th>Book</th>
+                            <th>Copies</th>
+                            <th>User</th>
+                            <th>IP</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var log in logs)
+                        {
+                            <tr>
+                                <td>@log.PrintedAt.ToLocalTime().ToString("g")</td>
+                                <td>@log.BookTitle</td>
+                                <td><strong>@log.Copies</strong></td>
+                                <td>@log.PrintedByUserName</td>
+                                <td><code>@log.IPAddress</code></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+                <p class="text-muted">Total prints: <strong>@logs.Sum(l => l.Copies)</strong></p>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private List<PrintLog>? logs;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthState.GetAuthenticationStateAsync();
+        var user = await UserManager.GetUserAsync(authState.User);
+
+        if (user?.ShopId != null)
+            logs = await PrintLogging.GetShopLogsAsync(user.ShopId.Value, 200);
+    }
+}

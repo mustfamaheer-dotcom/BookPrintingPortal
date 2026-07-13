@@ -1,0 +1,102 @@
+@page "/admin/dashboard"
+@attribute [Authorize(Roles = "Admin")]
+@inject AppDbContext Db
+@inject PrintLoggingService PrintLogging
+
+<div class="container-fluid py-4">
+    <h1 class="mb-4">Admin Dashboard</h1>
+
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card text-bg-primary">
+                <div class="card-body">
+                    <h5 class="card-title">Total Books</h5>
+                    <h2 class="mb-0">@totalBooks</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card text-bg-success">
+                <div class="card-body">
+                    <h5 class="card-title">Active Shops</h5>
+                    <h2 class="mb-0">@activeShops</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card text-bg-info">
+                <div class="card-body">
+                    <h5 class="card-title">Boards</h5>
+                    <h2 class="mb-0">@totalBoards</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card text-bg-warning">
+                <div class="card-body">
+                    <h5 class="card-title">Total Prints</h5>
+                    <h2 class="mb-0">@totalPrints</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h5>Recent Print Activity</h5>
+        </div>
+        <div class="card-body">
+            @if (recentLogs == null)
+            {
+                <p>Loading...</p>
+            }
+            else if (!recentLogs.Any())
+            {
+                <p class="text-muted">No print activity yet.</p>
+            }
+            else
+            {
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>Shop</th>
+                            <th>Book</th>
+                            <th>Copies</th>
+                            <th>User</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var log in recentLogs)
+                        {
+                            <tr>
+                                <td>@log.PrintedAt.ToLocalTime().ToString("g")</td>
+                                <td>@log.ShopName</td>
+                                <td>@log.BookTitle</td>
+                                <td>@log.Copies</td>
+                                <td>@log.PrintedByUserName</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private int totalBooks;
+    private int activeShops;
+    private int totalBoards;
+    private int totalPrints;
+    private List<PrintLog>? recentLogs;
+
+    protected override async Task OnInitializedAsync()
+    {
+        totalBooks = await Db.Books.CountAsync(b => b.IsActive);
+        activeShops = await Db.Shops.CountAsync(s => s.IsActive);
+        totalBoards = await Db.EducationalBoards.CountAsync(b => b.IsActive);
+        totalPrints = await PrintLogging.GetTotalPrintsAsync();
+        recentLogs = await PrintLogging.GetRecentLogsAsync(20);
+    }
+}
