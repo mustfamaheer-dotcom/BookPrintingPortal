@@ -228,7 +228,7 @@
             }
 
             if (!directPrintSuccess) {
-                alert('\u26A0\uFE0F Local Printer Agent not detected. Opening secure browser print dialog.\n\nNote: If you \'Save as PDF\', the file will be password-protected.');
+                alert('\u26A0\uFE0F Local Printer Agent not detected. Start the agent (dotnet run) on this machine and retry.\n\nOpening browser print dialog (heavy watermark is baked into every page).');
                 window.print();
             }
 

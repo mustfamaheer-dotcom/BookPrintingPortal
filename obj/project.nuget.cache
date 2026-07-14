@@ -1,13 +1,15 @@
 {
   "version": 2,
-  "dgSpecHash": "aFNhZpGymu0=",
+  "dgSpecHash": "zCK74sfRtow=",
   "success": true,
   "projectFilePath": "E:\\WORK\\FreeLance\\ENG Baheeg\\PrintingBooksPortal\\PrintingBooksPortal.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\Moustafa Maher\\.nuget\\packages\\azure.core\\1.47.1\\azure.core.1.47.1.nupkg.sha512",
     "C:\\Users\\Moustafa Maher\\.nuget\\packages\\azure.identity\\1.14.2\\azure.identity.1.14.2.nupkg.sha512",
+    "C:\\Users\\Moustafa Maher\\.nuget\\packages\\bouncycastle.cryptography\\2.6.2\\bouncycastle.cryptography.2.6.2.nupkg.sha512",
     "C:\\Users\\Moustafa Maher\\.nuget\\packages\\humanizer.core\\2.14.1\\humanizer.core.2.14.1.nupkg.sha512",
     "C:\\Users\\Moustafa Maher\\.nuget\\packages\\itext\\9.7.0\\itext.9.7.0.nupkg.sha512",
+    "C:\\Users\\Moustafa Maher\\.nuget\\packages\\itext.bouncy-castle-adapter\\9.7.0\\itext.bouncy-castle-adapter.9.7.0.nupkg.sha512",
     "C:\\Users\\Moustafa Maher\\.nuget\\packages\\itext.commons\\9.7.0\\itext.commons.9.7.0.nupkg.sha512",
     "C:\\Users\\Moustafa Maher\\.nuget\\packages\\itext7\\9.7.0\\itext7.9.7.0.nupkg.sha512",
     "C:\\Users\\Moustafa Maher\\.nuget\\packages\\microsoft.aspnetcore.app.internal.assets\\10.0.9\\microsoft.aspnetcore.app.internal.assets.10.0.9.nupkg.sha512",
