@@ -16,9 +16,9 @@ public class SecurePdfController : ControllerBase
     private readonly FileStorageService _fileStorage;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly PrintLoggingService _printLogging;
-    private readonly WatermarkService _watermarkService;
+    private readonly IWatermarkService _watermarkService;
     private readonly PrintTokenService _printTokenService;
-    private readonly PdfSecurityService _pdfSecurity;
+    private readonly IPdfSecurityService _pdfSecurity;
     private readonly ILogger<SecurePdfController> _logger;
 
     public SecurePdfController(
@@ -26,9 +26,9 @@ public class SecurePdfController : ControllerBase
         FileStorageService fileStorage,
         UserManager<ApplicationUser> userManager,
         PrintLoggingService printLogging,
-        WatermarkService watermarkService,
+        IWatermarkService watermarkService,
         PrintTokenService printTokenService,
-        PdfSecurityService pdfSecurity,
+        IPdfSecurityService pdfSecurity,
         ILogger<SecurePdfController> logger)
     {
         _db = db;
@@ -61,17 +61,21 @@ public class SecurePdfController : ControllerBase
         return hasAccess ? (book, user) : (null, null);
     }
 
+    private async Task<byte[]?> GetOriginalPdfBytes(int bookId)
+    {
+        var filePath = _fileStorage.GetFilePath((await _db.Books.FindAsync(bookId))?.FilePath ?? "");
+        if (!System.IO.File.Exists(filePath))
+            return null;
+        return await System.IO.File.ReadAllBytesAsync(filePath);
+    }
+
     [HttpGet("view-secure/{bookId}")]
     [Authorize(Roles = "Shop,Admin")]
     public async Task<IActionResult> ViewSecurePdf(int bookId)
     {
         var (book, user) = await ValidateAccess(bookId);
         if (book == null || user == null)
-            return NotFound();
-
-        var filePath = _fileStorage.GetFilePath(book.FilePath);
-        if (!System.IO.File.Exists(filePath))
-            return NotFound("PDF file not found on server.");
+            return NotFound(new { error = "Access Denied: You are not authorized to view this book." });
 
         var shop = user.ShopId != null ? await _db.Shops.FindAsync(user.ShopId.Value) : null;
         var shopName = shop?.Name ?? "Unknown Shop";
@@ -80,10 +84,9 @@ public class SecurePdfController : ControllerBase
 
         try
         {
-            using var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read);
-            var watermarked = _watermarkService.AddHeavyWatermark(fs, shopName, user.UserName ?? "Unknown", DateTime.UtcNow);
-            var base64 = Convert.ToBase64String(watermarked);
-            return Ok(new { pdfData = base64 });
+            var originalBytes = await System.IO.File.ReadAllBytesAsync(_fileStorage.GetFilePath(book.FilePath));
+            var watermarked = _watermarkService.AddHeavyWatermark(originalBytes, shopName, user.UserName ?? "Unknown", DateTime.UtcNow);
+            return Ok(new { pdfData = Convert.ToBase64String(watermarked) });
         }
         catch (Exception ex)
         {
@@ -98,7 +101,7 @@ public class SecurePdfController : ControllerBase
     {
         var user = await _userManager.GetUserAsync(User);
         if (user?.ShopId == null)
-            return Unauthorized();
+            return Unauthorized(new { success = false, error = "Access Denied: You are not authorized to print." });
 
         var hasAccess = await _db.ShopBookAssignments
             .AnyAsync(a => a.ShopId == user.ShopId && a.BookId == request.BookId && a.IsActive);
@@ -108,27 +111,33 @@ public class SecurePdfController : ControllerBase
 
         var book = await _db.Books.FindAsync(request.BookId);
         if (book == null)
-            return NotFound();
+            return NotFound(new { success = false, error = "Book not found." });
 
         var filePath = _fileStorage.GetFilePath(book.FilePath);
         if (!System.IO.File.Exists(filePath))
-            return NotFound("PDF file not found on server.");
+            return NotFound(new { success = false, error = "PDF file not found on server." });
 
         var shop = await _db.Shops.FindAsync(user.ShopId.Value);
         var shopName = shop?.Name ?? "Unknown Shop";
         var copies = Math.Max(1, request.Copies);
 
-        var jobId = Guid.NewGuid().ToString("N").Substring(0, 12).ToUpper();
+        var jobId = Guid.NewGuid().ToString("N");
+        var userPass = $"PRINT-{jobId}";
+        var ownerPass = $"ADMIN-{jobId}";
 
         _logger.LogInformation("ProcessPrint: Job={JobId}, Book={BookId}, Shop={ShopId}, Copies={Copies}",
             jobId, request.BookId, user.ShopId, copies);
 
         try
         {
-            using var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read);
-            var watermarked = _watermarkService.AddHeavyWatermark(fs, shopName, user.UserName ?? "Unknown", DateTime.UtcNow);
+            var originalBytes = await System.IO.File.ReadAllBytesAsync(filePath);
+            var watermarked = _watermarkService.AddHeavyWatermark(originalBytes, shopName, user.UserName ?? "Unknown", DateTime.UtcNow);
+            var securedBytes = _pdfSecurity.EncryptPdfWithPassword(watermarked, userPass, ownerPass);
 
-            var securedFilePath = _pdfSecurity.CreateSecurePrintFile(watermarked, jobId, out var password);
+            var secureDir = Path.Combine(Directory.GetCurrentDirectory(), "SecurePrints");
+            Directory.CreateDirectory(secureDir);
+            var securePath = Path.Combine(secureDir, $"{jobId}.pdf");
+            await System.IO.File.WriteAllBytesAsync(securePath, securedBytes);
 
             var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
             await _printLogging.LogPrintAsync(
@@ -146,8 +155,8 @@ public class SecurePdfController : ControllerBase
             {
                 success = true,
                 jobId,
-                password,
-                message = $"Print job {jobId} created for {copies} copy(ies). Password: {password}"
+                password = userPass,
+                message = $"Print job {jobId} created for {copies} copy(ies). Password: {userPass}"
             });
         }
         catch (Exception ex)
@@ -158,13 +167,14 @@ public class SecurePdfController : ControllerBase
     }
 
     [HttpGet("print-file/{jobId}")]
-    public IActionResult GetPrintFile(string jobId, [FromQuery] string? password = null)
+    public IActionResult GetPrintFile(string jobId)
     {
-        var fileBytes = _pdfSecurity.GetSecurePrintFile(jobId);
-        if (fileBytes == null)
+        var securePath = Path.Combine(Directory.GetCurrentDirectory(), "SecurePrints", $"{jobId}.pdf");
+        if (!System.IO.File.Exists(securePath))
             return NotFound("Print job not found or expired.");
 
-        _pdfSecurity.CleanupJob(jobId);
+        var fileBytes = System.IO.File.ReadAllBytes(securePath);
+        System.IO.File.Delete(securePath);
 
         return File(fileBytes, "application/pdf", $"print_{jobId}.pdf");
     }
@@ -211,10 +221,9 @@ public class SecurePdfController : ControllerBase
 
         try
         {
-            using var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read);
-            var watermarked = _watermarkService.AddHeavyWatermark(fs, shopName, userName, DateTime.UtcNow);
-            var ms = new MemoryStream(watermarked);
-            return File(ms, "application/pdf", enableRangeProcessing: false);
+            var originalBytes = await System.IO.File.ReadAllBytesAsync(filePath);
+            var watermarked = _watermarkService.AddHeavyWatermark(originalBytes, shopName, userName, DateTime.UtcNow);
+            return File(new MemoryStream(watermarked), "application/pdf", enableRangeProcessing: false);
         }
         catch (Exception ex)
         {
@@ -236,48 +245,12 @@ public class SecurePdfController : ControllerBase
         var shopName = shop?.Name ?? "Unknown Shop";
 
         var token = _printTokenService.GenerateToken(bookId, user.Id, shopName, user.UserName ?? "Unknown");
-
         return Ok(new { token, expiresInMinutes = 5 });
-    }
-
-    [HttpPost("log-print/{bookId}")]
-    [Authorize(Roles = "Shop")]
-    public async Task<IActionResult> LogPrint(int bookId, [FromBody] PrintRequest request)
-    {
-        var user = await _userManager.GetUserAsync(User);
-        if (user?.ShopId == null)
-            return Unauthorized();
-
-        var hasAccess = await _db.ShopBookAssignments
-            .AnyAsync(a => a.ShopId == user.ShopId && a.BookId == bookId && a.IsActive);
-
-        if (!hasAccess)
-            return Forbid();
-
-        var copies = Math.Max(1, request.Copies);
-        var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
-
-        await _printLogging.LogPrintAsync(
-            user.ShopId.Value,
-            bookId,
-            copies,
-            user.Id,
-            user.UserName
-        );
-
-        _logger.LogInformation("Shop {ShopId} printed {Copies} copies of book {BookId} from {IP}", user.ShopId, copies, bookId, ipAddress);
-
-        return Ok(new { message = "Print logged successfully", copies });
     }
 }
 
 public class ProcessPrintRequest
 {
     public int BookId { get; set; }
-    public int Copies { get; set; } = 1;
-}
-
-public class PrintRequest
-{
     public int Copies { get; set; } = 1;
 }

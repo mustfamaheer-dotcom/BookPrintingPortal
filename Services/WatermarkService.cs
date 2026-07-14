@@ -4,85 +4,37 @@ using PdfSharpCore.Drawing;
 
 namespace PrintingBooksPortal.Services;
 
-public class WatermarkService
+public class WatermarkService : IWatermarkService
 {
-    public byte[] AddWatermark(Stream pdfStream, string shopName, string userId, string userName)
+    public byte[] AddHeavyWatermark(byte[] pdfBytes, string shopName, string userName, DateTime timestamp)
     {
-        using var inputDoc = PdfReader.Open(pdfStream, PdfDocumentOpenMode.Import);
-        using var outputDoc = new PdfDocument();
+        using var inputStream = new MemoryStream(pdfBytes);
 
-        string dateStr = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss UTC");
-        string line1 = $"Licensed to: {shopName}";
-        string line2 = $"User: {userName} ({userId})";
-        string line3 = $"Printed: {dateStr}";
+        using var document = PdfReader.Open(inputStream, PdfDocumentOpenMode.Modify);
 
-        for (int i = 0; i < inputDoc.PageCount; i++)
+        string watermarkText = $"LICENSED TO: {shopName}\nUSER: {userName}\nDATE: {timestamp:yyyy-MM-dd HH:mm}\nDO NOT DISTRIBUTE";
+
+        foreach (var page in document.Pages)
         {
-            var page = outputDoc.AddPage(inputDoc.Pages[i]);
-            using var gfx = XGraphics.FromPdfPage(page);
+            using var gfx = XGraphics.FromPdfPage(page, XGraphicsPdfPageOptions.Append);
 
-            var font = new XFont("Arial", 36, XFontStyle.Bold);
-            var brush = new XSolidBrush(XColor.FromArgb(30, 200, 0, 0));
+            var font = new XFont("Arial", 40, XFontStyle.Bold);
+            var brush = new XSolidBrush(XColor.FromArgb(128, 128, 128, 128));
 
-            double cx = page.Width / 2;
-            double cy = page.Height / 2;
+            var width = page.Width.Point;
+            var height = page.Height.Point;
+
+            var size = gfx.MeasureString(watermarkText, font);
 
             gfx.Save();
-            gfx.TranslateTransform(cx, cy);
+            gfx.TranslateTransform(width / 2, height / 2);
             gfx.RotateTransform(-45);
-
-            gfx.DrawString(line1, font, brush, new XPoint(0, -40), XStringFormats.Center);
-            gfx.DrawString(line2, font, brush, new XPoint(0, 10), XStringFormats.Center);
-            gfx.DrawString(line3, font, brush, new XPoint(0, 60), XStringFormats.Center);
-
+            gfx.DrawString(watermarkText, font, brush, -size.Width / 2, -size.Height / 2);
             gfx.Restore();
         }
 
-        using var ms = new MemoryStream();
-        outputDoc.Save(ms);
-        return ms.ToArray();
-    }
-
-    public byte[] AddHeavyWatermark(Stream pdfStream, string shopName, string userName, DateTime timestamp)
-    {
-        using var inputDoc = PdfReader.Open(pdfStream, PdfDocumentOpenMode.Import);
-        using var outputDoc = new PdfDocument();
-
-        string dateStr = timestamp.ToString("yyyy-MM-dd HH:mm:ss UTC");
-        string watermarkText = $"LICENSED TO {shopName} | USER: {userName} | DATE: {dateStr} | DO NOT DISTRIBUTE";
-
-        for (int i = 0; i < inputDoc.PageCount; i++)
-        {
-            var page = outputDoc.AddPage(inputDoc.Pages[i]);
-            using var gfx = XGraphics.FromPdfPage(page);
-
-            var font = new XFont("Arial", 72, XFontStyle.Bold);
-            var brush = new XSolidBrush(XColor.FromArgb(25, 220, 0, 0));
-
-            double cx = page.Width / 2;
-            double cy = page.Height / 2;
-
-            gfx.Save();
-            gfx.TranslateTransform(cx, cy);
-            gfx.RotateTransform(-45);
-
-            gfx.DrawString(watermarkText, font, brush, new XPoint(0, 0), XStringFormats.Center);
-
-            var font2 = new XFont("Arial", 18, XFontStyle.Regular);
-            var brush2 = new XSolidBrush(XColor.FromArgb(40, 100, 100, 100));
-            gfx.DrawString($"Printed via PrintingBooksPortal | {dateStr}", font2, brush2, new XPoint(0, cy * 0.6), XStringFormats.Center);
-
-            gfx.Restore();
-
-            using var gfx2 = XGraphics.FromPdfPage(page);
-            var font3 = new XFont("Arial", 8, XFontStyle.Regular);
-            var brush3 = new XSolidBrush(XColor.FromArgb(60, 80, 80, 80));
-            gfx2.DrawString($"User: {userName} | Shop: {shopName} | {dateStr}", font3, brush3,
-                new XPoint(page.Width - 10, page.Height - 10), XStringFormats.BottomRight);
-        }
-
-        using var ms = new MemoryStream();
-        outputDoc.Save(ms);
-        return ms.ToArray();
+        using var outputStream = new MemoryStream();
+        document.Save(outputStream);
+        return outputStream.ToArray();
     }
 }

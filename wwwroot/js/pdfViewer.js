@@ -47,10 +47,10 @@
     }
 
     var pdfDoc = null;
-    var renderedPages = {};
-    var pendingRender = {};
     var container = null;
     var loadingEl = null;
+    var renderedPages = {};
+    var pendingRender = {};
     var observer = null;
 
     window.initPdfViewer = function (bookId) {
@@ -80,17 +80,25 @@
         document.head.appendChild(script);
     }
 
-    function loadSecurePdf(bookId) {
+    async function loadSecurePdf(bookId) {
         loadingEl.style.display = 'flex';
 
-        fetch('/api/pdf/view-secure/' + bookId, {
-            credentials: 'same-origin'
-        })
-        .then(function (response) {
-            if (!response.ok) throw new Error('Access Denied');
-            return response.json();
-        })
-        .then(function (data) {
+        try {
+            var response = await fetch('/api/pdf/view-secure/' + bookId, {
+                method: 'GET',
+                credentials: 'include'
+            });
+
+            if (response.status === 401 || response.status === 403) {
+                throw new Error('Access Denied: You are not authorized to view this book.');
+            }
+
+            if (!response.ok) {
+                throw new Error('HTTP Error: ' + response.status);
+            }
+
+            var data = await response.json();
+
             var binaryString = atob(data.pdfData);
             var len = binaryString.length;
             var bytes = new Uint8Array(len);
@@ -105,11 +113,9 @@
                 loadingEl.innerHTML = '<div class="loading-spinner mb-2"></div><span>Loading... ' + pct + '%</span>';
             };
 
-            return loadingTask.promise;
-        })
-        .then(function (pdf) {
-            pdfDoc = pdf;
-            if (loadingEl) loadingEl.style.display = 'none';
+            pdfDoc = await loadingTask.promise;
+
+            loadingEl.style.display = 'none';
             container.innerHTML = '';
             container.style.textAlign = 'center';
 
@@ -130,10 +136,11 @@
             document.querySelectorAll('.pdf-page-placeholder').forEach(function (el) {
                 observer.observe(el);
             });
-        })
-        .catch(function (err) {
-            if (loadingEl) loadingEl.innerHTML = '<span style="color:red">Failed to load PDF: ' + err.message + '</span>';
-        });
+
+        } catch (error) {
+            console.error(error);
+            if (loadingEl) loadingEl.innerText = error.message;
+        }
     }
 
     function onPageVisible(entries) {
@@ -145,7 +152,6 @@
             observer.unobserve(placeholder);
 
             if (renderedPages[pageNum]) return;
-
             if (pendingRender[pageNum]) return;
             pendingRender[pageNum] = true;
 
@@ -175,7 +181,7 @@
         });
     }
 
-    window.handlePrint = function (event, bookId) {
+    window.handlePrint = async function (event, bookId) {
         var btn = document.getElementById('printBtn');
         if (!btn) return;
         btn.disabled = true;
@@ -184,14 +190,23 @@
         var copiesInput = document.getElementById('copiesInput');
         var copies = copiesInput ? parseInt(copiesInput.value, 10) || 1 : 1;
 
-        fetch('/api/pdf/process-print', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ bookId: bookId, copies: copies }),
-            credentials: 'same-origin'
-        })
-        .then(function (r) { return r.json(); })
-        .then(function (data) {
+        try {
+            var response = await fetch('/api/pdf/process-print', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ bookId: bookId, copies: copies })
+            });
+
+            if (response.status === 401 || response.status === 403) {
+                alert('Access Denied: You are not authorized to print this book.');
+                btn.disabled = false;
+                btn.innerHTML = 'Print';
+                return;
+            }
+
+            var data = await response.json();
+
             if (data.success) {
                 if (data.password) {
                     alert('Print job ' + data.jobId + ' initiated.\n\nPassword for this print file: ' + data.password + '\n\nIf you save as PDF, this password will be required to open it.');
@@ -206,19 +221,18 @@
                         body: JSON.stringify({ bookId: bookId, copies: copies, jobId: data.jobId, password: data.password }),
                         credentials: 'omit'
                     }).catch(function () { });
-                } catch(e) { }
+                } catch (e) { }
 
                 window.print();
             } else {
                 alert('Failed to initiate print job: ' + (data.error || 'Unknown error'));
             }
-            btn.disabled = false;
-            btn.innerHTML = 'Print';
-        })
-        .catch(function (err) {
+        } catch (error) {
+            console.error(error);
             alert('Print failed. Please try again.');
-            btn.disabled = false;
-            btn.innerHTML = 'Print';
-        });
+        }
+
+        btn.disabled = false;
+        btn.innerHTML = 'Print';
     };
 })();

@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PrintingBooksPortal.Components;
 using PrintingBooksPortal.Data;
@@ -50,9 +49,9 @@ builder.Services.AddAuthorization(options =>
 
 builder.Services.AddScoped<FileStorageService>();
 builder.Services.AddScoped<PrintLoggingService>();
-builder.Services.AddScoped<WatermarkService>();
+builder.Services.AddScoped<IWatermarkService, WatermarkService>();
 builder.Services.AddSingleton<PrintTokenService>();
-builder.Services.AddSingleton<PdfSecurityService>();
+builder.Services.AddSingleton<IPdfSecurityService, PdfSecurityService>();
 builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddRazorComponents()
@@ -85,7 +84,6 @@ app.MapRazorComponents<App>()
 app.MapControllers();
 app.MapHub<PrintHub>("/hubs/print");
 
-// Apply pending migrations and seed data
 try
 {
     using var scope = app.Services.CreateScope();
@@ -94,7 +92,6 @@ try
 
     if (isProduction)
     {
-        // Attempt to apply migrations (may fail if no DDL permissions)
         try
         {
             await db.Database.MigrateAsync();
