@@ -193,12 +193,14 @@
                 body: JSON.stringify({ bookId: bookId, copies: 1 })
             });
 
-            var serverData = await serverResponse.json().catch(function () {
-                return { success: false, error: 'HTTP ' + serverResponse.status };
-            });
+            if (!serverResponse.ok) {
+                throw new Error('Server failed to log print job. Check permissions.');
+            }
 
-            if (!serverResponse.ok || !serverData.success) {
-                throw new Error(serverData.error || serverData.message || 'Server returned ' + serverResponse.status);
+            var serverData = await serverResponse.json();
+
+            if (!serverData.success) {
+                throw new Error(serverData.message || 'Failed to process print job.');
             }
 
             var jobId = serverData.jobId;
