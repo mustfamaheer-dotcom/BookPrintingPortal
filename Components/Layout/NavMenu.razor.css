@@ -71,8 +71,12 @@ nav {
 nav::-webkit-scrollbar { width: 3px; }
 nav::-webkit-scrollbar-thumb { background: var(--sidebar-scrollbar); border-radius: 3px; }
 
-/* ===== Nav Items ===== */
-.nav-link {
+/* ===== Nav Items =====
+   NOTE: Selectors are nested under `.sidebar` to beat Bootstrap's global
+   `.nav-link` rules (which override padding, color, outline, etc.).
+   Bootstrap is loaded globally before the scoped bundle, so these
+   higher-specificity rules reliably win without resorting to !important. */
+.sidebar .nav-link {
     display: flex;
     align-items: center;
     gap: 14px;
@@ -87,15 +91,19 @@ nav::-webkit-scrollbar-thumb { background: var(--sidebar-scrollbar); border-radi
     font-weight: 450;
     position: relative;
     border-left: 3px solid transparent;
+    background: transparent;
 }
 
-.nav-link:hover {
+.sidebar .nav-link:hover {
     background: var(--sidebar-hover-bg);
     color: var(--sidebar-text-active);
 }
 
-/* Active link - Option A: Prominent Background */
-.nav-link.active {
+/* Active link - Option A: Prominent Background.
+   `.active` is the class added by Blazor's <NavLink>; `aria-current="page"`
+   is also matched as a fallback / accessibility-friendly selector. */
+.sidebar .nav-link.active,
+.sidebar .nav-link[aria-current="page"] {
     color: var(--sidebar-text-active);
     background: rgba(255, 255, 255, 0.2);
     border-left: 3px solid var(--sidebar-text-active);
@@ -104,7 +112,8 @@ nav::-webkit-scrollbar-thumb { background: var(--sidebar-scrollbar); border-radi
     transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.nav-link.active::after {
+.sidebar .nav-link.active::after,
+.sidebar .nav-link[aria-current="page"]::after {
     content: '';
     position: absolute;
     right: 12px;
@@ -117,7 +126,8 @@ nav::-webkit-scrollbar-thumb { background: var(--sidebar-scrollbar); border-radi
     opacity: 0.7;
 }
 
-.nav-link.active:hover {
+.sidebar .nav-link.active:hover,
+.sidebar .nav-link[aria-current="page"]:hover {
     background: rgba(255, 255, 255, 0.25);
     transform: translateX(3px);
     box-shadow:
@@ -125,14 +135,26 @@ nav::-webkit-scrollbar-thumb { background: var(--sidebar-scrollbar); border-radi
         inset 0 0 0 1px rgba(255, 255, 255, 0.2);
 }
 
-/* Focus state for keyboard navigation */
-.nav-link:focus-visible {
+/* Focus state for keyboard navigation.
+   Bootstrap's `.nav-link:focus-visible { outline: 0 }` is overridden here
+   via the extra `.sidebar` class specificity so the ring is visible. */
+.sidebar .nav-link:focus-visible {
     outline: 2px solid rgba(255, 255, 255, 0.5);
     outline-offset: 2px;
 }
 
+/* Slightly stronger focus ring when the focused link is also active,
+   so the two states compose cleanly for keyboard users. */
+.sidebar .nav-link.active:focus-visible,
+.sidebar .nav-link[aria-current="page"]:focus-visible {
+    outline-color: rgba(255, 255, 255, 0.8);
+    box-shadow:
+        0 0 0 2px rgba(255, 255, 255, 0.25),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+}
+
 /* Icon container */
-.nav-icon {
+.sidebar .nav-icon {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -143,49 +165,57 @@ nav::-webkit-scrollbar-thumb { background: var(--sidebar-scrollbar); border-radi
     transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.nav-link:hover .nav-icon {
+.sidebar .nav-link:hover .nav-icon {
     background: rgba(255, 255, 255, 0.08);
 }
 
-.nav-link.active .nav-icon {
+.sidebar .nav-link.active .nav-icon,
+.sidebar .nav-link[aria-current="page"] .nav-icon {
     background: var(--sidebar-icon-active-bg);
     transform: scale(1.08);
     transition: transform 300ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.nav-link.active:hover .nav-icon {
+.sidebar .nav-link.active:hover .nav-icon,
+.sidebar .nav-link[aria-current="page"]:hover .nav-icon {
     transform: scale(1.15);
 }
 
-.nav-icon svg {
+.sidebar .nav-icon svg {
     opacity: 0.85;
     transition: opacity 200ms ease;
 }
 
-.nav-link:hover .nav-icon svg {
+.sidebar .nav-link:hover .nav-icon svg {
     opacity: 1;
 }
 
-.nav-link.active .nav-icon svg {
+.sidebar .nav-link.active .nav-icon svg,
+.sidebar .nav-link[aria-current="page"] .nav-icon svg {
     opacity: 1;
 }
 
-.nav-label {
+.sidebar .nav-label {
     transition: opacity 200ms ease;
+    opacity: 0.85;
 }
 
-.nav-link.active .nav-label {
+.sidebar .nav-link.active .nav-label,
+.sidebar .nav-link[aria-current="page"] .nav-label {
     opacity: 1;
 }
 
 /* Respect reduced motion preferences */
 @media (prefers-reduced-motion: reduce) {
-    .nav-link,
-    .nav-link.active,
-    .nav-link.active:hover,
-    .nav-icon,
-    .nav-link.active .nav-icon,
-    .nav-label {
+    .sidebar .nav-link,
+    .sidebar .nav-link.active,
+    .sidebar .nav-link[aria-current="page"],
+    .sidebar .nav-link.active:hover,
+    .sidebar .nav-link[aria-current="page"]:hover,
+    .sidebar .nav-icon,
+    .sidebar .nav-link.active .nav-icon,
+    .sidebar .nav-link[aria-current="page"] .nav-icon,
+    .sidebar .nav-label {
         transition: none;
         animation: none;
         transform: none;
@@ -201,4 +231,13 @@ nav::-webkit-scrollbar-thumb { background: var(--sidebar-scrollbar); border-radi
 
 .sidebar-footer .nav-link {
     margin-bottom: 0;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    color: var(--sidebar-text);
+    text-decoration: none;
+    border-left: 3px solid transparent;
+    transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
 }
