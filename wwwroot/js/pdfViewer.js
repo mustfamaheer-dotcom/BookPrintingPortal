@@ -8,32 +8,9 @@
     document.addEventListener('keydown', function (e) {
         var ctrl = e.ctrlKey || e.metaKey;
         var key = e.key.toLowerCase();
-
         if (ctrl && key === 's') { e.preventDefault(); e.stopPropagation(); return; }
         if (ctrl && key === 'p') { e.preventDefault(); e.stopPropagation(); return; }
-        if (ctrl && key === 'u') { e.preventDefault(); return; }
-        if (e.key === 'F12') { e.preventDefault(); return; }
-        if (ctrl && e.shiftKey && key === 'i') { e.preventDefault(); return; }
-        if (ctrl && e.shiftKey && key === 'j') { e.preventDefault(); return; }
-        if (ctrl && key === 'c' && e.target.closest('#pdfViewer')) { e.preventDefault(); return; }
-        if (ctrl && e.shiftKey && key === 'c') { e.preventDefault(); return; }
     }, true);
-
-    var devToolsOpen = false;
-    var threshold = 160;
-
-    setInterval(function () {
-        var w = window.outerWidth - window.innerWidth > threshold;
-        var h = window.outerHeight - window.innerHeight > threshold;
-        if (w || h) {
-            if (!devToolsOpen) {
-                devToolsOpen = true;
-                document.body.innerHTML = '<div style="padding:40px;text-align:center;"><h1>Access Denied</h1><p>Developer tools detected. Please close them and reload the page.</p></div>';
-            }
-        } else {
-            devToolsOpen = false;
-        }
-    }, 1000);
 
     document.addEventListener('dragstart', function (e) {
         if (e.target.closest('.pdf-container')) e.preventDefault();
@@ -41,10 +18,6 @@
     document.addEventListener('selectstart', function (e) {
         if (e.target.closest('.pdf-container')) e.preventDefault();
     });
-
-    if (window.console) {
-        window.console.log = window.console.info = window.console.warn = window.console.dir = function () { };
-    }
 
     var pdfDoc = null;
     var container = null;
@@ -186,11 +159,14 @@
         if (loadingEl) loadingEl.innerText = 'Processing print job...';
 
         try {
+            var copiesInput = document.getElementById('copiesInput');
+            var copies = copiesInput ? parseInt(copiesInput.value, 10) || 1 : 1;
+
             var serverResponse = await fetch('/api/pdf/process-print', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify({ bookId: bookId, copies: 1 })
+                body: JSON.stringify({ bookId: bookId, copies: copies })
             });
 
             var serverData = await serverResponse.json().catch(function () {
@@ -202,9 +178,26 @@
             }
 
             var jobId = serverData.jobId;
+            if (loadingEl) loadingEl.innerText = 'Waiting for local printer agent...';
 
-            if (loadingEl) loadingEl.innerText = 'Downloading encrypted print file...';
-            window.location.href = '/api/pdf/download-secured/' + jobId;
+            var agentClaimed = false;
+            for (var i = 0; i < 10; i++) {
+                await new Promise(function (r) { setTimeout(r, 2000); });
+                try {
+                    var check = await fetch('/api/pdf/print-agent/pending');
+                    var checkData = await check.json();
+                    if (checkData.jobs && !checkData.jobs.includes(jobId)) {
+                        agentClaimed = true;
+                        break;
+                    }
+                } catch (_) { }
+            }
+
+            if (agentClaimed) {
+                if (loadingEl) loadingEl.innerText = '';
+            } else {
+                throw new Error('Local printer agent not detected. Make sure the agent is running and try again.');
+            }
 
         } catch (error) {
             alert('\u274C Error: ' + error.message);
