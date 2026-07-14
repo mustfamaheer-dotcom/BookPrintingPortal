@@ -683,27 +683,16 @@ a:hover {
 .pdf-container {
     position: relative;
     height: calc(100vh - 56px);
-    overflow: hidden;
+    overflow-y: auto;
+    overflow-x: hidden;
+    background: #525659;
 }
 
 .pdf-frame {
     width: 100%;
     height: 100%;
     border: none;
-}
-
-.pdf-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 10;
-    pointer-events: auto;
-    -webkit-touch-callout: none;
-    -webkit-user-select: none;
-    user-select: none;
-    cursor: default;
+    display: block;
 }
 
 
@@ -1142,7 +1131,6 @@ a:hover {
     .app-sidebar,
     .app-footer,
     .viewer-header,
-    .pdf-overlay,
     #blazor-error-ui,
     .navbar,
     .nav-header,

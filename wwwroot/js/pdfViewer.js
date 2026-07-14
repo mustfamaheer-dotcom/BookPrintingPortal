@@ -67,31 +67,24 @@ document.addEventListener('dragstart', function (e) {
     return false;
 });
 
-// Disable selection on the PDF viewer area
+// Disable text selection on the PDF viewer area
 document.addEventListener('selectstart', function (e) {
     if (e.target.closest('.pdf-container')) {
         e.preventDefault();
-        return false;
     }
 });
 
-// PDF overlay: blocks right-click, forwards scroll to iframe
-(function () {
-    const overlay = document.getElementById('pdfOverlay');
-    const iframe = document.getElementById('pdfViewer');
-    if (!overlay || !iframe) return;
-
-    overlay.addEventListener('wheel', function (e) {
-        if (iframe && iframe.contentWindow) {
-            iframe.contentWindow.scrollBy(0, e.deltaY);
+// Prevent iframe from capturing focus on right-click / keyboard shortcuts
+// by intercepting events before they reach the iframe
+document.addEventListener('keydown', function (e) {
+    // Block Ctrl+S in the pdf container
+    if (e.target.closest('.pdf-container')) {
+        if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+            e.preventDefault();
+            e.stopImmediatePropagation();
         }
-    }, { passive: true });
-
-    overlay.addEventListener('contextmenu', function (e) {
-        e.preventDefault();
-        return false;
-    });
-})();
+    }
+}, true);
 
 // Handle print from native button click (preserves user gesture)
 window.handlePrint = function (event, bookId) {

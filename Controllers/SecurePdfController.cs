@@ -92,15 +92,20 @@ public class SecurePdfController : ControllerBase
 
         _logger.LogInformation("User {UserId} is printing book {BookId} - {BookTitle}", user.Id, bookId, book.Title);
 
-        var ms = new MemoryStream();
-        using (var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read))
+        try
         {
             var watermarkService = HttpContext.RequestServices.GetRequiredService<WatermarkService>();
+            using var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read);
             var watermarked = watermarkService.AddWatermark(fs);
-            ms.Write(watermarked, 0, watermarked.Length);
+            var ms = new MemoryStream(watermarked);
+            return File(ms, "application/pdf", enableRangeProcessing: false);
         }
-        ms.Position = 0;
-        return File(ms, "application/pdf", enableRangeProcessing: false);
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Watermarking failed for book {BookId}, serving original PDF", bookId);
+            var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read);
+            return File(stream, "application/pdf", enableRangeProcessing: false);
+        }
     }
 
     [HttpPost("log-print/{bookId}")]
