@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PrintingBooksPortal.Components;
 using PrintingBooksPortal.Data;
+using PrintingBooksPortal.Hubs;
 using PrintingBooksPortal.Models;
 using PrintingBooksPortal.Services;
 
@@ -50,12 +51,14 @@ builder.Services.AddAuthorization(options =>
 builder.Services.AddScoped<FileStorageService>();
 builder.Services.AddScoped<PrintLoggingService>();
 builder.Services.AddScoped<WatermarkService>();
+builder.Services.AddSingleton<PrintTokenService>();
 builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
 builder.Services.AddControllers();
+builder.Services.AddSignalR();
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.Configuration["AppUrl"] ?? "http://localhost:5035") });
 
 var app = builder.Build();
@@ -79,6 +82,7 @@ app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 app.MapControllers();
+app.MapHub<PrintJobHub>("/hubs/print");
 
 // Apply pending migrations and seed data
 try

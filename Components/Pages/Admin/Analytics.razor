@@ -122,6 +122,40 @@
     </div>
 
     <div class="content-card">
+        <div class="card-header"><h5>Daily Trends (Last 7 Days)</h5></div>
+        <div class="card-body p-0">
+            @if (dailyTrends == null)
+            {
+                <div class="loading-placeholder">Loading...</div>
+            }
+            else if (!dailyTrends.Any())
+            {
+                <div class="empty-state"><p>No data for last 7 days.</p></div>
+            }
+            else
+            {
+                <div class="table-container">
+                    <table class="table">
+                        <thead>
+                            <tr><th>Date</th><th>Prints</th><th>Copies</th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in dailyTrends)
+                            {
+                                <tr>
+                                    <td>@item.Date.ToString("ddd, MMM dd")</td>
+                                    <td>@item.PrintCount</td>
+                                    <td><strong>@item.TotalCopies</strong></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="content-card">
         <div class="card-header"><h5>Recent Print Logs</h5></div>
         <div class="card-body p-0">
             @if (recentLogs == null)
@@ -174,6 +208,14 @@
     private Dictionary<string, int>? printsPerShop;
     private Dictionary<string, int>? printsPerBook;
     private List<PrintLog>? recentLogs;
+    private List<DailyTrend>? dailyTrends;
+
+    private class DailyTrend
+    {
+        public DateTime Date { get; set; }
+        public int PrintCount { get; set; }
+        public int TotalCopies { get; set; }
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -184,5 +226,20 @@
         printsPerShop = await PrintLogging.GetPrintsPerShopAsync();
         printsPerBook = await PrintLogging.GetPrintsPerBookAsync();
         recentLogs = await PrintLogging.GetRecentLogsAsync(100);
+
+        var now = DateTime.UtcNow;
+        var weekAgo = now.AddDays(-7);
+        dailyTrends = await Db.PrintLogs
+            .AsNoTracking()
+            .Where(l => l.PrintedAt >= weekAgo)
+            .GroupBy(l => l.PrintedAt.Date)
+            .Select(g => new DailyTrend
+            {
+                Date = g.Key,
+                PrintCount = g.Count(),
+                TotalCopies = g.Sum(l => l.Copies)
+            })
+            .OrderBy(x => x.Date)
+            .ToListAsync();
     }
 }
