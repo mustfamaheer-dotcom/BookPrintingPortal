@@ -6,7 +6,6 @@
 .app-sidebar {
     width: var(--sidebar-width);
     min-width: var(--sidebar-width);
-    background: linear-gradient(180deg, #0f172a 0%, #1a1a2e 100%);
     color: #fff;
     display: flex;
     flex-direction: column;
@@ -16,7 +15,7 @@
     bottom: 0;
     z-index: 1000;
     transition: transform 0.3s ease;
-    border-right: 1px solid rgba(255,255,255,0.05);
+    box-shadow: 0 0 0 0.5px rgba(0,0,0,0.1);
 }
 
 .app-main {
