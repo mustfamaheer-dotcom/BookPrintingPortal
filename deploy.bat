@@ -4,23 +4,13 @@ echo =====================================
 echo Target: drbaheegbook.runasp.net
 echo.
 
-REM Build and publish
-echo 📦 Building application...
-dotnet publish -c Release
-
-REM Deploy using MSDeploy
-echo 🌐 Deploying to RunASP.NET...
-dotnet publish -c Release ^
-  /p:PublishMethod=MSDeploy ^
-  /p:MSDeployServiceURL=site79455.siteasp.net:8172 ^
-  /p:DeployDefaultTarget=WebPublish ^
-  /p:MSDeployPublishMethod=WMSVC ^
-  /p:CreatePackageOnPublish=false ^
-  /p:MSDeploySite=site79455 ^
-  /p:UserName=site79455 ^
-  /p:Password=Q#r8_q3D6Nj%% ^
-  /p:AllowUntrustedCertificate=true ^
-  /p:SkipExtraFilesOnServer=true
+REM Build and deploy using the publish profile (MSDeploy via WMSVC).
+REM NOTE: In .NET 10, passing bare /p:MSDeploy* flags to `dotnet publish`
+REM silently falls back to a folder publish and never contacts the server.
+REM Using the named PublishProfile (MonsterASP.pubxml) is what actually
+REM loads the MSDeploy/WMSVC targets and pushes files to RunASP.NET.
+echo 📦 Building and deploying application...
+dotnet publish -c Release -p:PublishProfile=MonsterASP -p:Password=Q#r8_q3D6Nj%%
 
 if %errorlevel% equ 0 (
     echo.
