@@ -189,6 +189,7 @@
 
         var copiesInput = document.getElementById('copiesInput');
         var copies = copiesInput ? parseInt(copiesInput.value, 10) || 1 : 1;
+        var agentKey = 'agent-shared-secret-change-me';
 
         try {
             var response = await fetch('/api/pdf/process-print', {
@@ -207,25 +208,38 @@
 
             var data = await response.json();
 
-            if (data.success) {
-                if (data.password) {
-                    alert('Print job ' + data.jobId + ' initiated.\n\nPassword for this print file: ' + data.password + '\n\nIf you save as PDF, this password will be required to open it.');
-                } else {
-                    alert('Print job ' + data.jobId + ' initiated.');
-                }
-
-                try {
-                    fetch('http://localhost:8080/api/print', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ bookId: bookId, copies: copies, jobId: data.jobId, password: data.password }),
-                        credentials: 'omit'
-                    }).catch(function () { });
-                } catch (e) { }
-
-                window.print();
-            } else {
+            if (!data.success) {
                 alert('Failed to initiate print job: ' + (data.error || 'Unknown error'));
+                btn.disabled = false;
+                btn.innerHTML = 'Print';
+                return;
+            }
+
+            var agentSuccess = false;
+            try {
+                var agentResponse = await fetch('http://localhost:8080/api/print-job', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Api-Key': agentKey
+                    },
+                    body: JSON.stringify({ jobId: data.jobId, copies: copies })
+                });
+                if (agentResponse.ok) {
+                    agentSuccess = true;
+                    alert('Sent directly to printer!');
+                }
+            } catch (e) {
+                console.log('Local agent not found, falling back to browser print.');
+            }
+
+            if (!agentSuccess) {
+                if (data.password) {
+                    alert('Local printer agent offline. Using browser print dialog.\n\nIf you save as PDF, password: ' + data.password);
+                } else {
+                    alert('Local printer agent offline. Using browser print dialog.');
+                }
+                window.print();
             }
         } catch (error) {
             console.error(error);

@@ -19,6 +19,7 @@ public class SecurePdfController : ControllerBase
     private readonly IWatermarkService _watermarkService;
     private readonly PrintTokenService _printTokenService;
     private readonly IPdfSecurityService _pdfSecurity;
+    private readonly IConfiguration _configuration;
     private readonly ILogger<SecurePdfController> _logger;
 
     public SecurePdfController(
@@ -29,6 +30,7 @@ public class SecurePdfController : ControllerBase
         IWatermarkService watermarkService,
         PrintTokenService printTokenService,
         IPdfSecurityService pdfSecurity,
+        IConfiguration configuration,
         ILogger<SecurePdfController> logger)
     {
         _db = db;
@@ -38,6 +40,7 @@ public class SecurePdfController : ControllerBase
         _watermarkService = watermarkService;
         _printTokenService = printTokenService;
         _pdfSecurity = pdfSecurity;
+        _configuration = configuration;
         _logger = logger;
     }
 
@@ -123,7 +126,7 @@ public class SecurePdfController : ControllerBase
 
         var jobId = Guid.NewGuid().ToString("N");
         var userPass = $"PRINT-{jobId}";
-        var ownerPass = $"ADMIN-{jobId}";
+        var ownerPass = _configuration.GetValue<string>("OwnerPassword") ?? $"ADMIN-{jobId}";
 
         _logger.LogInformation("ProcessPrint: Job={JobId}, Book={BookId}, Shop={ShopId}, Copies={Copies}",
             jobId, request.BookId, user.ShopId, copies);
@@ -177,6 +180,17 @@ public class SecurePdfController : ControllerBase
         System.IO.File.Delete(securePath);
 
         return File(fileBytes, "application/pdf", $"print_{jobId}.pdf");
+    }
+
+    [HttpGet("download-secured/{jobId}")]
+    public IActionResult DownloadSecured(string jobId)
+    {
+        var securePath = Path.Combine(Directory.GetCurrentDirectory(), "SecurePrints", $"{jobId}.pdf");
+        if (!System.IO.File.Exists(securePath))
+            return NotFound("Print job not found or expired.");
+
+        var fileBytes = System.IO.File.ReadAllBytes(securePath);
+        return File(fileBytes, "application/pdf", $"secured_{jobId}.pdf");
     }
 
     [HttpGet("print/{bookId}")]
