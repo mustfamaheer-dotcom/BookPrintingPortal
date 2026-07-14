@@ -679,7 +679,20 @@ a:hover {
     content: "An error has occurred."
 }
 
-/* ===== PDF Overlay ===== */
+/* ===== PDF Viewer Container ===== */
+.pdf-container {
+    position: relative;
+    height: calc(100vh - 56px);
+    overflow: hidden;
+}
+
+.pdf-frame {
+    width: 100%;
+    height: 100%;
+    border: none;
+    pointer-events: none;
+}
+
 .pdf-overlay {
     position: absolute;
     top: 0;
@@ -687,10 +700,11 @@ a:hover {
     right: 0;
     bottom: 0;
     z-index: 10;
-    pointer-events: none;
+    pointer-events: auto;
     -webkit-touch-callout: none;
     -webkit-user-select: none;
     user-select: none;
+    cursor: default;
 }
 
 /* ===== Animations ===== */

@@ -8,44 +8,36 @@ document.addEventListener('contextmenu', function (e) {
 
 // Block ALL keyboard shortcuts for saving, downloading, printing, devtools
 document.addEventListener('keydown', function (e) {
-    // Ctrl+S (Save), Ctrl+Shift+S (Save As)
     if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) {
         e.preventDefault();
         e.stopPropagation();
         return false;
     }
-    // Ctrl+P (Print) - handled by our custom button
     if ((e.ctrlKey || e.metaKey) && (e.key === 'p' || e.key === 'P')) {
         e.preventDefault();
         e.stopPropagation();
         return false;
     }
-    // Ctrl+U (View Source)
     if ((e.ctrlKey || e.metaKey) && (e.key === 'u' || e.key === 'U')) {
         e.preventDefault();
         return false;
     }
-    // F12 (DevTools)
     if (e.key === 'F12') {
         e.preventDefault();
         return false;
     }
-    // Ctrl+Shift+I (DevTools)
     if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'i' || e.key === 'I')) {
         e.preventDefault();
         return false;
     }
-    // Ctrl+Shift+J (Console)
     if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'j' || e.key === 'J')) {
         e.preventDefault();
         return false;
     }
-    // Ctrl+C (Copy) - block only in viewer context
     if ((e.ctrlKey || e.metaKey) && (e.key === 'c' || e.key === 'C')) {
         e.preventDefault();
         return false;
     }
-    // Ctrl+Shift+C (Inspect Element)
     if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'c' || e.key === 'C')) {
         e.preventDefault();
         return false;
@@ -69,7 +61,7 @@ setInterval(function () {
     }
 }, 1000);
 
-// Disable drag and drop (prevent dragging PDF out)
+// Disable drag and drop
 document.addEventListener('dragstart', function (e) {
     e.preventDefault();
     return false;
@@ -77,20 +69,30 @@ document.addEventListener('dragstart', function (e) {
 
 // Disable selection on the PDF viewer area
 document.addEventListener('selectstart', function (e) {
-    if (e.target.closest('#pdfViewer')) {
+    if (e.target.closest('.pdf-container')) {
         e.preventDefault();
         return false;
     }
 });
 
-// Prevent the PDF from being opened in a new tab via middle-click
-document.addEventListener('mousedown', function (e) {
-    if (e.button === 1) {
-        if (e.target.closest('#pdfViewer') || e.target.closest('a[href*="/api/pdf/"]')) {
-            e.preventDefault();
-            return false;
+// PDF overlay: blocks right-click and forwards scroll to iframe
+document.addEventListener('DOMContentLoaded', function () {
+    const overlay = document.getElementById('pdfOverlay');
+    const iframe = document.getElementById('pdfViewer');
+    if (!overlay || !iframe) return;
+
+    // Forward wheel events from overlay to iframe for scrolling
+    overlay.addEventListener('wheel', function (e) {
+        if (iframe && iframe.contentWindow) {
+            iframe.contentWindow.scrollBy(0, e.deltaY);
         }
-    }
+    }, { passive: true });
+
+    // Block context menu on overlay
+    overlay.addEventListener('contextmenu', function (e) {
+        e.preventDefault();
+        return false;
+    });
 });
 
 // Blazor interop: print function called from C#
@@ -108,35 +110,10 @@ window.printPdf = function () {
     }
 };
 
-// Override console methods to reduce information leakage
+// Override console methods
 if (window.console) {
     window.console.log = function () { };
     window.console.info = function () { };
     window.console.warn = function () { };
     window.console.dir = function () { };
 }
-
-// Additional protection: block common save-as methods in the PDF viewer iframe
-window.addEventListener('load', function () {
-    const iframe = document.getElementById('pdfViewer');
-    if (iframe) {
-        try {
-            // Try to inject security into the iframe (works if same-origin)
-            const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
-            if (iframeDoc) {
-                iframeDoc.addEventListener('contextmenu', function (e) {
-                    e.preventDefault();
-                    return false;
-                });
-                iframeDoc.addEventListener('keydown', function (e) {
-                    if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) {
-                        e.preventDefault();
-                        return false;
-                    }
-                });
-            }
-        } catch (e) {
-            // Cross-origin iframe - can't inject, but #toolbar=0 and overlay provide protection
-        }
-    }
-});

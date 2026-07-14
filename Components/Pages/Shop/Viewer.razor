@@ -46,15 +46,12 @@ else
             </div>
         </header>
 
-            <div class="position-relative" style="height: calc(100vh - 56px);">
+            <div class="pdf-container">
                 <iframe id="pdfViewer"
                         src="@pdfUrl"
-                        style="width: 100%; height: 100%; border: none;"
-                        oncontextmenu="return false;"
-                        oncopy="return false;"
-                        oncut="return false;"
-                        onpaste="return false;">
+                        class="pdf-frame">
                 </iframe>
+                <div class="pdf-overlay" id="pdfOverlay"></div>
             </div>
         </div>
     }
