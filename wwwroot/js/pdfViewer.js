@@ -1,21 +1,23 @@
 // Secure PDF Viewer - Security Measures
 
-// Block right-click context menu
+// Block right-click context menu everywhere
 document.addEventListener('contextmenu', function (e) {
     e.preventDefault();
     return false;
 });
 
-// Block common keyboard shortcuts for saving, printing, and developer tools
+// Block ALL keyboard shortcuts for saving, downloading, printing, devtools
 document.addEventListener('keydown', function (e) {
     // Ctrl+S (Save), Ctrl+Shift+S (Save As)
     if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) {
         e.preventDefault();
+        e.stopPropagation();
         return false;
     }
     // Ctrl+P (Print) - handled by our custom button
     if ((e.ctrlKey || e.metaKey) && (e.key === 'p' || e.key === 'P')) {
         e.preventDefault();
+        e.stopPropagation();
         return false;
     }
     // Ctrl+U (View Source)
@@ -40,6 +42,11 @@ document.addEventListener('keydown', function (e) {
     }
     // Ctrl+C (Copy) - block only in viewer context
     if ((e.ctrlKey || e.metaKey) && (e.key === 'c' || e.key === 'C')) {
+        e.preventDefault();
+        return false;
+    }
+    // Ctrl+Shift+C (Inspect Element)
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'c' || e.key === 'C')) {
         e.preventDefault();
         return false;
     }
@@ -68,9 +75,9 @@ document.addEventListener('dragstart', function (e) {
     return false;
 });
 
-// Disable selection
+// Disable selection on the PDF viewer area
 document.addEventListener('selectstart', function (e) {
-    if (e.target.closest('#pdfViewer') || e.target.closest('.pdf-viewer')) {
+    if (e.target.closest('#pdfViewer')) {
         e.preventDefault();
         return false;
     }
@@ -108,3 +115,28 @@ if (window.console) {
     window.console.warn = function () { };
     window.console.dir = function () { };
 }
+
+// Additional protection: block common save-as methods in the PDF viewer iframe
+window.addEventListener('load', function () {
+    const iframe = document.getElementById('pdfViewer');
+    if (iframe) {
+        try {
+            // Try to inject security into the iframe (works if same-origin)
+            const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+            if (iframeDoc) {
+                iframeDoc.addEventListener('contextmenu', function (e) {
+                    e.preventDefault();
+                    return false;
+                });
+                iframeDoc.addEventListener('keydown', function (e) {
+                    if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) {
+                        e.preventDefault();
+                        return false;
+                    }
+                });
+            }
+        } catch (e) {
+            // Cross-origin iframe - can't inject, but #toolbar=0 and overlay provide protection
+        }
+    }
+});

@@ -1,12 +1,74 @@
 ﻿@page "/"
 @layout PublicLayout
 
-<div class="container mt-5 text-center">
-    <div class="row justify-content-center">
-        <div class="col-md-8">
-            <h1 class="display-4 mb-4">PrintingBooks Portal</h1>
-            <p class="lead mb-4">Secure centralized printing management platform for educators and bookshops.</p>
-            <a href="/login" class="btn btn-primary btn-lg">Sign In</a>
+<div class="hero-section">
+    <div class="hero-bg"></div>
+    <div class="container">
+        <div class="row min-vh-100 align-items-center">
+            <div class="col-lg-7">
+                <div class="hero-content">
+                    <span class="hero-badge">Secure Printing Management</span>
+                    <h1 class="hero-title">Centralized Printing Platform for Educators & Bookshops</h1>
+                    <p class="hero-description">
+                        Streamline your educational printing workflow with secure access, 
+                        real-time tracking, and comprehensive analytics. Manage book assignments 
+                        and monitor print activity across all your bookshops.
+                    </p>
+                    <div class="hero-actions">
+                        <a href="/login" class="btn btn-primary btn-lg px-4">
+                            Sign In to Dashboard
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="features-section">
+    <div class="container">
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                            <line x1="16" y1="13" x2="8" y2="13"/>
+                            <line x1="16" y1="17" x2="8" y2="17"/>
+                            <polyline points="10 9 9 9 8 9"/>
+                        </svg>
+                    </div>
+                    <h3>Book Management</h3>
+                    <p>Upload, organize, and manage educational books with ease. Categorize by educational board and track all your resources.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                            <line x1="8" y1="21" x2="16" y2="21"/>
+                            <line x1="12" y1="17" x2="12" y2="21"/>
+                        </svg>
+                    </div>
+                    <h3>Secure Printing</h3>
+                    <p>Print books directly from the platform with full security controls, activity logging, and copy protection.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" y1="20" x2="18" y2="10"/>
+                            <line x1="12" y1="20" x2="12" y2="4"/>
+                            <line x1="6" y1="20" x2="6" y2="14"/>
+                        </svg>
+                    </div>
+                    <h3>Analytics & Tracking</h3>
+                    <p>Monitor print activity with detailed analytics per shop and per book. Make data-driven decisions for your resources.</p>
+                </div>
+            </div>
         </div>
     </div>
 </div>

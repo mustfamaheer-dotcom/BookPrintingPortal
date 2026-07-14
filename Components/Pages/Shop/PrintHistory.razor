@@ -5,12 +5,17 @@
 @inject AuthenticationStateProvider AuthState
 @inject PrintLoggingService PrintLogging
 
-<div class="container-fluid py-4">
-    <h1 class="mb-4">My Print History</h1>
+<div class="content-area">
+    <div class="page-header">
+        <div>
+            <h1>My Print History</h1>
+            <p class="page-subtitle">View your shop's printing activity</p>
+        </div>
+    </div>
 
     @if (logs == null)
     {
-        <p>Loading...</p>
+        <div class="loading-placeholder">Loading...</div>
     }
     else if (!logs.Any())
     {
@@ -18,32 +23,36 @@
     }
     else
     {
-        <div class="card">
-            <div class="card-body">
-                <table class="table table-striped">
-                    <thead>
-                        <tr>
-                            <th>Date/Time</th>
-                            <th>Book</th>
-                            <th>Copies</th>
-                            <th>User</th>
-                            <th>IP</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var log in logs)
-                        {
+        <div class="content-card">
+            <div class="card-body p-0">
+                <div class="table-container">
+                    <table class="table">
+                        <thead>
                             <tr>
-                                <td>@log.PrintedAt.ToLocalTime().ToString("g")</td>
-                                <td>@log.BookTitle</td>
-                                <td><strong>@log.Copies</strong></td>
-                                <td>@log.PrintedByUserName</td>
-                                <td><code>@log.IPAddress</code></td>
+                                <th>Date/Time</th>
+                                <th>Book</th>
+                                <th>Copies</th>
+                                <th>User</th>
+                                <th>IP</th>
                             </tr>
-                        }
-                    </tbody>
-                </table>
-                <p class="text-muted">Total prints: <strong>@logs.Sum(l => l.Copies)</strong></p>
+                        </thead>
+                        <tbody>
+                            @foreach (var log in logs)
+                            {
+                                <tr>
+                                    <td>@log.PrintedAt.ToLocalTime().ToString("g")</td>
+                                    <td><strong>@log.BookTitle</strong></td>
+                                    <td><strong>@log.Copies</strong></td>
+                                    <td>@log.PrintedByUserName</td>
+                                    <td><code>@log.IPAddress</code></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                <div class="card-footer bg-transparent">
+                    <p class="text-muted mb-0">Total prints: <strong>@logs.Sum(l => l.Copies)</strong></p>
+                </div>
             </div>
         </div>
     }

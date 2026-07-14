@@ -4,115 +4,138 @@
 @inject PrintLoggingService PrintLogging
 @inject NavigationManager Navigation
 
-<div class="container-fluid py-4">
-    <h1 class="mb-4">Analytics Dashboard</h1>
+<div class="content-area">
+    <div class="page-header">
+        <div>
+            <h1>Analytics Dashboard</h1>
+            <p class="page-subtitle">Detailed insights into printing activity across all shops</p>
+        </div>
+    </div>
 
-    <div class="row mb-4">
-        <div class="col-md-3 mb-3">
-            <div class="card text-bg-primary">
-                <div class="card-body">
-                    <h5>Total Prints</h5>
-                    <h2>@totalPrints</h2>
+    <div class="row g-4 mb-4">
+        <div class="col-md-3">
+            <div class="stat-card stat-card-primary">
+                <div class="stat-icon">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+                    </svg>
                 </div>
+                <div class="stat-label">Total Prints</div>
+                <div class="stat-value">@totalPrints</div>
             </div>
         </div>
-        <div class="col-md-3 mb-3">
-            <div class="card text-bg-success">
-                <div class="card-body">
-                    <h5>Active Shops</h5>
-                    <h2>@activeShops</h2>
+        <div class="col-md-3">
+            <div class="stat-card stat-card-success">
+                <div class="stat-icon">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+                    </svg>
                 </div>
+                <div class="stat-label">Active Shops</div>
+                <div class="stat-value">@activeShops</div>
             </div>
         </div>
-        <div class="col-md-3 mb-3">
-            <div class="card text-bg-info">
-                <div class="card-body">
-                    <h5>Total Books</h5>
-                    <h2>@totalBooks</h2>
+        <div class="col-md-3">
+            <div class="stat-card stat-card-info">
+                <div class="stat-icon">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                    </svg>
                 </div>
+                <div class="stat-label">Total Books</div>
+                <div class="stat-value">@totalBooks</div>
             </div>
         </div>
-        <div class="col-md-3 mb-3">
-            <div class="card text-bg-warning">
-                <div class="card-body">
-                    <h5>Total Logs</h5>
-                    <h2>@totalLogs</h2>
+        <div class="col-md-3">
+            <div class="stat-card stat-card-rose">
+                <div class="stat-icon">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+                    </svg>
                 </div>
+                <div class="stat-label">Total Logs</div>
+                <div class="stat-value">@totalLogs</div>
             </div>
         </div>
     </div>
 
-    <div class="row">
-        <div class="col-md-6 mb-4">
-            <div class="card">
+    <div class="row g-4 mb-4">
+        <div class="col-md-6">
+            <div class="content-card">
                 <div class="card-header"><h5>Prints per Shop</h5></div>
-                <div class="card-body">
+                <div class="card-body p-0">
                     @if (printsPerShop != null && printsPerShop.Any())
                     {
-                        <table class="table table-sm">
-                            <thead><tr><th>Shop</th><th>Total Prints</th></tr></thead>
-                            <tbody>
-                                @foreach (var item in printsPerShop.OrderByDescending(x => x.Value))
-                                {
-                                    <tr>
-                                        <td>@item.Key</td>
-                                        <td><strong>@item.Value</strong></td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
+                        <div class="table-container">
+                            <table class="table">
+                                <thead>
+                                    <tr><th>Shop</th><th>Total Prints</th></tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var item in printsPerShop.OrderByDescending(x => x.Value))
+                                    {
+                                        <tr>
+                                            <td>@item.Key</td>
+                                            <td><strong>@item.Value</strong></td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
                     }
                     else
                     {
-                        <p class="text-muted">No print data yet.</p>
+                        <div class="empty-state"><p>No print data yet.</p></div>
                     }
                 </div>
             </div>
         </div>
 
-        <div class="col-md-6 mb-4">
-            <div class="card">
+        <div class="col-md-6">
+            <div class="content-card">
                 <div class="card-header"><h5>Prints per Book</h5></div>
-                <div class="card-body">
+                <div class="card-body p-0">
                     @if (printsPerBook != null && printsPerBook.Any())
                     {
-                        <table class="table table-sm">
-                            <thead><tr><th>Book</th><th>Total Prints</th></tr></thead>
-                            <tbody>
-                                @foreach (var item in printsPerBook.OrderByDescending(x => x.Value))
-                                {
-                                    <tr>
-                                        <td>@item.Key</td>
-                                        <td><strong>@item.Value</strong></td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
+                        <div class="table-container">
+                            <table class="table">
+                                <thead><tr><th>Book</th><th>Total Prints</th></tr></thead>
+                                <tbody>
+                                    @foreach (var item in printsPerBook.OrderByDescending(x => x.Value))
+                                    {
+                                        <tr>
+                                            <td>@item.Key</td>
+                                            <td><strong>@item.Value</strong></td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
                     }
                     else
                     {
-                        <p class="text-muted">No print data yet.</p>
+                        <div class="empty-state"><p>No print data yet.</p></div>
                     }
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="card">
+    <div class="content-card">
         <div class="card-header"><h5>Recent Print Logs</h5></div>
-        <div class="card-body">
+        <div class="card-body p-0">
             @if (recentLogs == null)
             {
-                <p>Loading...</p>
+                <div class="loading-placeholder">Loading...</div>
             }
             else if (!recentLogs.Any())
             {
-                <p class="text-muted">No logs yet.</p>
+                <div class="empty-state"><p>No logs yet.</p></div>
             }
             else
             {
-                <div style="max-height: 400px; overflow-y: auto;">
-                    <table class="table table-sm table-striped">
+                <div class="table-container" style="max-height: 400px; overflow-y: auto;">
+                    <table class="table">
                         <thead>
                             <tr>
                                 <th>Date/Time</th>
@@ -130,7 +153,7 @@
                                     <td>@log.PrintedAt.ToLocalTime().ToString("g")</td>
                                     <td>@log.ShopName</td>
                                     <td>@log.BookTitle</td>
-                                    <td>@log.Copies</td>
+                                    <td><strong>@log.Copies</strong></td>
                                     <td>@log.PrintedByUserName</td>
                                     <td><code>@log.IPAddress</code></td>
                                 </tr>

@@ -5,14 +5,20 @@
 @inject FileStorageService FileStorage
 @inject NavigationManager Navigation
 
-<div class="container-fluid py-4">
-    <h1 class="mb-4">Books</h1>
+<div class="content-area">
+    <div class="page-header">
+        <div>
+            <h1>Books</h1>
+            <p class="page-subtitle">Manage educational books and upload PDFs</p>
+        </div>
+    </div>
 
     @if (!string.IsNullOrEmpty(message))
     {
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            @message
-            <button type="button" class="btn-close" @onclick="() => message = null"></button>
+        <div class="alert alert-success alert-dismissible fade show d-flex align-items-center gap-2" role="alert">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            <span>@message</span>
+            <button type="button" class="btn-close ms-auto" @onclick="() => message = null"></button>
         </div>
     }
     @if (!string.IsNullOrEmpty(error))
@@ -20,18 +26,18 @@
         <div class="alert alert-danger">@error</div>
     }
 
-    <div class="card mb-4">
+    <div class="content-card mb-4">
         <div class="card-header">
             <h5>Upload New Book</h5>
         </div>
         <div class="card-body">
             <EditForm Model="@uploadModel" OnValidSubmit="@UploadBook">
-                <div class="row">
-                    <div class="col-md-6 mb-3">
+                <div class="row g-3">
+                    <div class="col-md-5">
                         <label class="form-label">Book Title</label>
-                        <InputText @bind-Value="uploadModel.Title" class="form-control" required />
+                        <InputText @bind-Value="uploadModel.Title" class="form-control" placeholder="Enter book title" required />
                     </div>
-                    <div class="col-md-4 mb-3">
+                    <div class="col-md-4">
                         <label class="form-label">Educational Board</label>
                         <select class="form-select" @bind="uploadModel.BoardId">
                             <option value="0">-- Select Board --</option>
@@ -41,7 +47,7 @@
                             }
                         </select>
                     </div>
-                    <div class="col-md-2 mb-3">
+                    <div class="col-md-2">
                         <label class="form-label">Page Count</label>
                         <InputNumber @bind-Value="uploadModel.PageCount" class="form-control" />
                     </div>
@@ -51,59 +57,67 @@
                     <InputFile OnChange="@OnFileSelected" class="form-control" accept=".pdf" />
                 </div>
                 <button type="submit" class="btn btn-primary" disabled="@loading">
+                    @if (loading)
+                    {
+                        <span class="loading-spinner me-1"></span>
+                    }
                     @(loading ? "Uploading..." : "Upload Book")
                 </button>
             </EditForm>
         </div>
     </div>
 
-    <div class="card">
-        <div class="card-body">
+    <div class="content-card">
+        <div class="card-body p-0">
             @if (books == null)
             {
-                <p>Loading...</p>
+                <div class="loading-placeholder">Loading...</div>
             }
             else if (!books.Any())
             {
-                <p class="text-muted">No books uploaded yet.</p>
+                <div class="empty-state">
+                    <p>No books uploaded yet.</p>
+                </div>
             }
             else
             {
-                <table class="table table-striped">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Title</th>
-                            <th>Board</th>
-                            <th>Size</th>
-                            <th>Pages</th>
-                            <th>Status</th>
-                            <th>Uploaded</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var book in books)
-                        {
+                <div class="table-container">
+                    <table class="table">
+                        <thead>
                             <tr>
-                                <td>@book.Id</td>
-                                <td>@book.Title</td>
-                                <td>@book.Board?.Name</td>
-                                <td>@FormatSize(book.FileSizeBytes)</td>
-                                <td>@book.PageCount</td>
-                                <td>
-                                    <span class="badge @(book.IsActive ? "bg-success" : "bg-secondary")">
-                                        @(book.IsActive ? "Active" : "Inactive")
-                                    </span>
-                                </td>
-                                <td>@book.CreatedAt.ToLocalTime().ToString("d")</td>
-                                <td>
-                                    <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteBook(book)">Delete</button>
-                                </td>
+                                <th>ID</th>
+                                <th>Title</th>
+                                <th>Board</th>
+                                <th>Size</th>
+                                <th>Pages</th>
+                                <th>Status</th>
+                                <th>Uploaded</th>
+                                <th>Actions</th>
                             </tr>
-                        }
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            @foreach (var book in books)
+                            {
+                                <tr>
+                                    <td>@book.Id</td>
+                                    <td><strong>@book.Title</strong></td>
+                                    <td>@book.Board?.Name</td>
+                                    <td>@FormatSize(book.FileSizeBytes)</td>
+                                    <td>@book.PageCount</td>
+                                    <td>
+                                        <span class="badge @(book.IsActive ? "bg-success" : "bg-secondary")">
+                                            @(book.IsActive ? "Active" : "Inactive")
+                                        </span>
+                                    </td>
+                                    <td>@book.CreatedAt.ToLocalTime().ToString("d")</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteBook(book)">Delete</button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
             }
         </div>
     </div>
@@ -159,7 +173,6 @@
                 return;
             }
 
-            // Save file using a memory stream to convert IBrowserFile to IFormFile-compatible
             var tempPath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.pdf");
             await using (var stream = new FileStream(tempPath, FileMode.Create))
             {

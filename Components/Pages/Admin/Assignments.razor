@@ -4,24 +4,30 @@
 @inject AppDbContext Db
 @inject NavigationManager Navigation
 
-<div class="container-fluid py-4">
-    <h1 class="mb-4">Assign Books to Shops</h1>
+<div class="content-area">
+    <div class="page-header">
+        <div>
+            <h1>Assign Books to Shops</h1>
+            <p class="page-subtitle">Manage which books are available to each bookshop</p>
+        </div>
+    </div>
 
     @if (!string.IsNullOrEmpty(message))
     {
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            @message
-            <button type="button" class="btn-close" @onclick="() => message = null"></button>
+        <div class="alert alert-success alert-dismissible fade show d-flex align-items-center gap-2" role="alert">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            <span>@message</span>
+            <button type="button" class="btn-close ms-auto" @onclick="() => message = null"></button>
         </div>
     }
 
-    <div class="row">
+    <div class="row g-4">
         @if (shops != null)
         {
             @foreach (var shop in shops.Where(s => s.IsActive))
             {
-                <div class="col-md-6 mb-4">
-                    <div class="card">
+                <div class="col-md-6">
+                    <div class="content-card">
                         <div class="card-header">
                             <h5 class="mb-0">@shop.Name</h5>
                         </div>

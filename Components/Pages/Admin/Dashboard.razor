@@ -3,82 +3,103 @@
 @inject AppDbContext Db
 @inject PrintLoggingService PrintLogging
 
-<div class="container-fluid py-4">
-    <h1 class="mb-4">Admin Dashboard</h1>
+<div class="content-area">
+    <div class="page-header">
+        <div>
+            <h1>Dashboard</h1>
+            <p class="page-subtitle">Overview of your printing management system</p>
+        </div>
+    </div>
 
-    <div class="row mb-4">
-        <div class="col-md-3 mb-3">
-            <div class="card text-bg-primary">
-                <div class="card-body">
-                    <h5 class="card-title">Total Books</h5>
-                    <h2 class="mb-0">@totalBooks</h2>
+    <div class="row g-4 mb-4">
+        <div class="col-md-3">
+            <div class="stat-card stat-card-primary">
+                <div class="stat-icon">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                    </svg>
                 </div>
+                <div class="stat-label">Total Books</div>
+                <div class="stat-value">@totalBooks</div>
             </div>
         </div>
-        <div class="col-md-3 mb-3">
-            <div class="card text-bg-success">
-                <div class="card-body">
-                    <h5 class="card-title">Active Shops</h5>
-                    <h2 class="mb-0">@activeShops</h2>
+        <div class="col-md-3">
+            <div class="stat-card stat-card-success">
+                <div class="stat-icon">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+                    </svg>
                 </div>
+                <div class="stat-label">Active Shops</div>
+                <div class="stat-value">@activeShops</div>
             </div>
         </div>
-        <div class="col-md-3 mb-3">
-            <div class="card text-bg-info">
-                <div class="card-body">
-                    <h5 class="card-title">Boards</h5>
-                    <h2 class="mb-0">@totalBoards</h2>
+        <div class="col-md-3">
+            <div class="stat-card stat-card-info">
+                <div class="stat-icon">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/>
+                    </svg>
                 </div>
+                <div class="stat-label">Boards</div>
+                <div class="stat-value">@totalBoards</div>
             </div>
         </div>
-        <div class="col-md-3 mb-3">
-            <div class="card text-bg-warning">
-                <div class="card-body">
-                    <h5 class="card-title">Total Prints</h5>
-                    <h2 class="mb-0">@totalPrints</h2>
+        <div class="col-md-3">
+            <div class="stat-card stat-card-warning">
+                <div class="stat-icon">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+                    </svg>
                 </div>
+                <div class="stat-label">Total Prints</div>
+                <div class="stat-value">@totalPrints</div>
             </div>
         </div>
     </div>
 
-    <div class="card">
+    <div class="content-card">
         <div class="card-header">
             <h5>Recent Print Activity</h5>
         </div>
-        <div class="card-body">
+        <div class="card-body p-0">
             @if (recentLogs == null)
             {
-                <p>Loading...</p>
+                <div class="loading-placeholder">Loading...</div>
             }
             else if (!recentLogs.Any())
             {
-                <p class="text-muted">No print activity yet.</p>
+                <div class="empty-state">
+                    <p>No print activity yet.</p>
+                </div>
             }
             else
             {
-                <table class="table table-sm">
-                    <thead>
-                        <tr>
-                            <th>Time</th>
-                            <th>Shop</th>
-                            <th>Book</th>
-                            <th>Copies</th>
-                            <th>User</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var log in recentLogs)
-                        {
+                <div class="table-container">
+                    <table class="table">
+                        <thead>
                             <tr>
-                                <td>@log.PrintedAt.ToLocalTime().ToString("g")</td>
-                                <td>@log.ShopName</td>
-                                <td>@log.BookTitle</td>
-                                <td>@log.Copies</td>
-                                <td>@log.PrintedByUserName</td>
+                                <th>Time</th>
+                                <th>Shop</th>
+                                <th>Book</th>
+                                <th>Copies</th>
+                                <th>User</th>
                             </tr>
-                        }
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            @foreach (var log in recentLogs)
+                            {
+                                <tr>
+                                    <td>@log.PrintedAt.ToLocalTime().ToString("g")</td>
+                                    <td>@log.ShopName</td>
+                                    <td>@log.BookTitle</td>
+                                    <td><strong>@log.Copies</strong></td>
+                                    <td>@log.PrintedByUserName</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
             }
         </div>
     </div>

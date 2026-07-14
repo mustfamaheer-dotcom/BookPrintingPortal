@@ -3,40 +3,55 @@
 @inject SignInManager<ApplicationUser> SignInManager
 @inject UserManager<ApplicationUser> UserManager
 
-<div class="page">
+<div class="app-layout">
     @if (showSidebar)
     {
-        <div class="sidebar">
+        <aside class="app-sidebar">
             <NavMenu />
-        </div>
+        </aside>
     }
 
-    <main>
+    <div class="app-main">
         @if (showTopBar)
         {
-            <div class="top-row px-4 auth-bar">
-                <AuthorizeView>
-                    <Authorized>
-                        <span class="me-3 text-muted">Hello, @context.User.Identity?.Name</span>
-                        <a href="/logout" class="btn btn-outline-danger btn-sm">Logout</a>
-                    </Authorized>
-                    <NotAuthorized>
-                        <a href="/login" class="btn btn-outline-primary btn-sm">Login</a>
-                    </NotAuthorized>
-                </AuthorizeView>
-            </div>
+            <header class="app-header">
+                <div class="d-flex align-items-center justify-content-between h-100 px-4">
+                    <div class="d-flex align-items-center gap-3">
+                        <button class="sidebar-toggle d-lg-none" onclick="document.querySelector('.app-sidebar').classList.toggle('show')">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                <line x1="3" y1="6" x2="21" y2="6"/>
+                                <line x1="3" y1="12" x2="21" y2="12"/>
+                                <line x1="3" y1="18" x2="21" y2="18"/>
+                            </svg>
+                        </button>
+                        <AuthorizeView>
+                            <Authorized>
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="user-info">
+                                        <span class="user-name">@context.User.Identity?.Name</span>
+                                    </div>
+                                    <a href="/logout" class="btn btn-outline-danger btn-sm">Logout</a>
+                                </div>
+                            </Authorized>
+                            <NotAuthorized>
+                                <a href="/login" class="btn btn-primary btn-sm">Login</a>
+                            </NotAuthorized>
+                        </AuthorizeView>
+                    </div>
+                </div>
+            </header>
         }
 
-        <article class="content px-4">
+        <main class="app-content">
             @Body
-        </article>
-    </main>
+        </main>
+    </div>
 </div>
 
 <div id="blazor-error-ui" data-nosnippet>
     An unhandled error has occurred.
     <a href="." class="reload">Reload</a>
-    <span class="dismiss">🗙</span>
+    <span class="dismiss">Dismiss</span>
 </div>
 
 @code {
