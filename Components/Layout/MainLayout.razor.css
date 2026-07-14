@@ -15,7 +15,7 @@
     bottom: 0;
     z-index: 1000;
     transition: transform 0.3s ease;
-    box-shadow: 0 0 0 0.5px rgba(0,0,0,0.1);
+    box-shadow: 4px 0 24px rgba(0,0,0,0.15);
 }
 
 .app-main {
@@ -34,6 +34,7 @@
     position: sticky;
     top: 0;
     z-index: 100;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
 }
 
 .app-content {
