@@ -154,10 +154,29 @@
         });
     }
 
-    window.handlePrint = async function (event, bookId) {
-        var loadingEl = document.getElementById('pdfLoading');
-        if (loadingEl) loadingEl.innerText = 'Processing print job...';
+    function showPrintModal(success, message) {
+        var modalEl = document.getElementById('printResultModal');
+        if (!modalEl) return;
 
+        var titleEl = document.getElementById('printModalTitle');
+        var iconEl = document.getElementById('printModalIcon');
+        var msgEl = document.getElementById('printModalMessage');
+
+        if (success) {
+            titleEl.textContent = 'Print Successful';
+            iconEl.innerHTML = '<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#28a745" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>';
+        } else {
+            titleEl.textContent = 'Print Failed';
+            iconEl.innerHTML = '<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#dc3545" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>';
+        }
+
+        msgEl.textContent = message;
+
+        var modal = new bootstrap.Modal(modalEl);
+        modal.show();
+    }
+
+    window.handlePrint = async function (event, bookId) {
         try {
             var copiesInput = document.getElementById('copiesInput');
             var copies = copiesInput ? parseInt(copiesInput.value, 10) || 1 : 1;
@@ -178,7 +197,6 @@
             }
 
             var jobId = serverData.jobId;
-            if (loadingEl) loadingEl.innerText = 'Waiting for local printer agent...';
 
             var agentClaimed = false;
             for (var i = 0; i < 10; i++) {
@@ -194,15 +212,13 @@
             }
 
             if (agentClaimed) {
-                if (loadingEl) loadingEl.innerText = '';
+                showPrintModal(true, 'The printing will be done shortly.');
             } else {
                 throw new Error('Local printer agent not detected. Make sure the agent is running and try again.');
             }
 
         } catch (error) {
-            alert('\u274C Error: ' + error.message);
-        } finally {
-            if (loadingEl) loadingEl.innerText = '';
+            showPrintModal(false, error.message);
         }
     };
 })();

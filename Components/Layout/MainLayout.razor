@@ -2,6 +2,8 @@
 @inject NavigationManager Navigation
 @inject SignInManager<ApplicationUser> SignInManager
 @inject UserManager<ApplicationUser> UserManager
+@inject IJSRuntime JSRuntime
+@implements IAsyncDisposable
 
 <div class="app-layout">
     @if (showSidebar)
@@ -17,7 +19,7 @@
             <header class="app-header">
                 <div class="d-flex align-items-center justify-content-between h-100 px-4">
                     <div class="d-flex align-items-center gap-3">
-                        <button class="sidebar-toggle d-lg-none" onclick="document.getElementById('appSidebar').classList.toggle('show')">
+                        <button class="sidebar-toggle d-lg-none" @onclick="ToggleSidebar">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                                 <line x1="3" y1="6" x2="21" y2="6"/>
                                 <line x1="3" y1="12" x2="21" y2="12"/>
@@ -32,7 +34,7 @@
                     <AuthorizeView>
                         <Authorized>
                             <div class="user-menu">
-                                <button class="user-menu-trigger" onclick="toggleUserMenu()">
+                                <button class="user-menu-trigger" @onclick="ToggleUserMenu">
                                     <div class="user-avatar">
                                         @GetInitials(context.User.Identity?.Name)
                                     </div>
@@ -86,25 +88,19 @@
     <span class="dismiss">Dismiss</span>
 </div>
 
-<script>
-    function toggleUserMenu() {
-        var menu = document.getElementById('userDropdown');
-        if (menu) {
-            menu.classList.toggle('show');
-            var closeHandler = function(e) {
-                if (!menu.contains(e.target) && !e.target.closest('.user-menu-trigger')) {
-                    menu.classList.remove('show');
-                    document.removeEventListener('click', closeHandler);
-                }
-            };
-            setTimeout(function() { document.addEventListener('click', closeHandler); }, 10);
-        }
-    }
-</script>
-
 @code {
     private bool showSidebar = true;
     private bool showTopBar = true;
+    private IJSObjectReference? layoutModule;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            layoutModule = await JSRuntime.InvokeAsync<IJSObjectReference>("import",
+                "./Components/Layout/MainLayout.razor.js");
+        }
+    }
 
     protected override void OnInitialized()
     {
@@ -113,6 +109,22 @@
                    && !path.StartsWith("/access-denied", StringComparison.OrdinalIgnoreCase)
                    && !path.StartsWith("/shop/viewer", StringComparison.OrdinalIgnoreCase);
         showTopBar = showSidebar;
+    }
+
+    private async Task ToggleUserMenu()
+    {
+        if (layoutModule is not null)
+        {
+            await layoutModule.InvokeVoidAsync("toggleUserMenu");
+        }
+    }
+
+    private async Task ToggleSidebar()
+    {
+        if (layoutModule is not null)
+        {
+            await layoutModule.InvokeVoidAsync("toggleSidebar");
+        }
     }
 
     private string GetBreadcrumb()
@@ -126,7 +138,15 @@
     private static string GetInitials(string? name)
     {
         if (string.IsNullOrEmpty(name)) return "?";
-        var parts = name.Split(new[] { '@', ' ', '.' }, StringSplitOptions.RemoveEmptyEntries);
-        return parts.Length > 0 ? parts[0].Substring(0, 1).ToUpper() : "?";
+        var parts = name.Split(['@', ' ', '.'], StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length > 0 ? parts[0][..1].ToUpper() : "?";
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (layoutModule is not null)
+        {
+            await layoutModule.DisposeAsync();
+        }
     }
 }
