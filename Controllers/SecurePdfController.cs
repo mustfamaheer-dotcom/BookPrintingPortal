@@ -153,7 +153,7 @@ public class SecurePdfController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "ProcessPrint failed for book {BookId}", request.BookId);
-            return StatusCode(500, new { success = false, error = "Failed to process print job." });
+            return StatusCode(500, new { success = false, error = $"Failed to process print job: {ex.Message}" });
         }
     }
 

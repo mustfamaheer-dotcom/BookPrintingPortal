@@ -64,11 +64,9 @@
             return;
         }
         var script = document.createElement('script');
-        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.min.js';
-        script.integrity = 'sha512-RV8E2GDM7W0pvJN+5jWfa+0tV6B88ZPX2JEJxohQxP2dW3ahehRTvRj3RX6Gq7bVgDy3F7lx/8AjRD4gPp2Tow==';
-        script.crossOrigin = 'anonymous';
+        script.src = '/js/pdf.min.js';
         script.onload = function () {
-            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.js';
+            pdfjsLib.GlobalWorkerOptions.workerSrc = '/js/pdf.worker.min.js';
             callback();
         };
         script.onerror = function () {

@@ -1,4 +1,5 @@
-using iTextSharp.text.pdf;
+using System.Text;
+using iText.Kernel.Pdf;
 
 namespace PrintingBooksPortal.Services;
 
@@ -15,23 +16,22 @@ public class PdfSecurityService
     {
         var timestamp = DateTime.UtcNow.ToString("yyyyMMddHHmmss");
         userPassword = $"PRINT-{jobId}-{timestamp}";
-        var ownerPassword = Guid.NewGuid().ToString("N").Substring(0, 24);
+        var ownerPassword = Guid.NewGuid().ToString("N")[..24];
 
-        using var reader = new PdfReader(watermarkedBytes);
+        using var reader = new PdfReader(new MemoryStream(watermarkedBytes));
         using var ms = new MemoryStream();
 
-        using var stamper = new PdfStamper(reader, ms);
+        var writerProperties = new WriterProperties()
+            .SetStandardEncryption(
+                Encoding.UTF8.GetBytes(userPassword),
+                Encoding.UTF8.GetBytes(ownerPassword),
+                EncryptionConstants.ALLOW_PRINTING,
+                EncryptionConstants.ENCRYPTION_AES_128
+            );
 
-        int permissions = PdfWriter.ALLOW_PRINTING | PdfWriter.ALLOW_SCREENREADERS;
-
-        stamper.Writer.SetEncryption(
-            System.Text.Encoding.UTF8.GetBytes(userPassword),
-            System.Text.Encoding.UTF8.GetBytes(ownerPassword),
-            permissions,
-            PdfWriter.STRENGTH128BITS
-        );
-
-        stamper.Close();
+        using var writer = new PdfWriter(ms, writerProperties);
+        using var pdfDoc = new PdfDocument(reader, writer);
+        pdfDoc.Close();
 
         var encryptedBytes = ms.ToArray();
         var filePath = Path.Combine(SecureFolder, $"{jobId}.pdf");
