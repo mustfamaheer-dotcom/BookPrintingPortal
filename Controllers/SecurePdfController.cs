@@ -154,7 +154,7 @@ public class SecurePdfController : ControllerBase
             _logger.LogInformation("Print logged: Job={JobId}, Shop={ShopId}, Book={BookId}, Copies={Copies}, IP={IP}",
                 jobId, user.ShopId, request.BookId, copies, ipAddress);
 
-            PendingPrintJobs.Jobs.TryAdd(jobId, DateTime.UtcNow);
+            PendingPrintJobs.Jobs.TryAdd(jobId, new PendingJobInfo { Copies = copies, CreatedAt = DateTime.UtcNow });
 
             return Ok(new
             {
@@ -267,7 +267,7 @@ public class SecurePdfController : ControllerBase
     public IActionResult GetPendingJobs()
     {
         var cutoff = DateTime.UtcNow.Add(-PendingPrintJobs.Expiry);
-        var expired = PendingPrintJobs.Jobs.Where(kv => kv.Value < cutoff).Select(kv => kv.Key).ToList();
+        var expired = PendingPrintJobs.Jobs.Where(kv => kv.Value.CreatedAt < cutoff).Select(kv => kv.Key).ToList();
         foreach (var key in expired)
             PendingPrintJobs.Jobs.TryRemove(key, out _);
 
@@ -278,8 +278,8 @@ public class SecurePdfController : ControllerBase
     [HttpPost("print-agent/claim/{jobId}")]
     public IActionResult ClaimJob(string jobId)
     {
-        if (PendingPrintJobs.Jobs.TryRemove(jobId, out _))
-            return Ok(new { success = true, jobId });
+        if (PendingPrintJobs.Jobs.TryRemove(jobId, out var info))
+            return Ok(new { success = true, jobId, copies = info.Copies });
         return NotFound(new { success = false, error = "Job not found or already claimed." });
     }
 }
@@ -290,8 +290,14 @@ public class ProcessPrintRequest
     public int Copies { get; set; } = 1;
 }
 
+public class PendingJobInfo
+{
+    public int Copies { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
+
 public static class PendingPrintJobs
 {
-    public static System.Collections.Concurrent.ConcurrentDictionary<string, DateTime> Jobs = new();
+    public static System.Collections.Concurrent.ConcurrentDictionary<string, PendingJobInfo> Jobs = new();
     public static readonly TimeSpan Expiry = TimeSpan.FromMinutes(5);
 }
