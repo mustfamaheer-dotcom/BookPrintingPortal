@@ -854,3 +854,256 @@ a:hover { color: var(--primary-dark); }
     .hero-stat-value { font-size: 1.25rem; }
     .hero-stats { gap: 1.5rem; }
 }
+
+
+
+/* =============================================================================
+   SIDEBAR NAVIGATION  (global – NOT scoped – see NavMenu.razor.css note)
+   ============================================================================= */
+
+/* ── Variables ─────────────────────────────────────────────────────────────── */
+.sidebar {
+    --sb-bg:          linear-gradient(180deg, #1e3a8a 0%, #1e40af 55%, #1d4ed8 100%);
+    --sb-text:        rgba(255,255,255,0.72);
+    --sb-text-active: #ffffff;
+    --sb-hover-bg:    rgba(255,255,255,0.08);
+    --sb-active-bg:   rgba(255,255,255,0.16);
+    --sb-border:      rgba(255,255,255,0.10);
+    --sb-ease:        cubic-bezier(0.4,0,0.2,1);
+}
+
+/* ── Shell ─────────────────────────────────────────────────────────────────── */
+.sidebar {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    width: 260px;
+    background: var(--sb-bg);
+    position: relative;
+    overflow: hidden;
+}
+
+/* subtle dot-grid overlay */
+.sidebar::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(rgba(255,255,255,0.06) 1px, transparent 1px);
+    background-size: 22px 22px;
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* keep real content above the overlay */
+.sidebar > * { position: relative; z-index: 1; }
+
+/* ── Brand ─────────────────────────────────────────────────────────────────── */
+.sidebar .navbar-brand {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 22px 20px 18px;
+    border-bottom: 1px solid var(--sb-border);
+    flex-shrink: 0;
+}
+
+.sidebar .brand-icon {
+    width: 42px;
+    height: 42px;
+    background: rgba(255,255,255,0.14);
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.18);
+}
+
+.sidebar .brand-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    display: block;
+}
+
+.sidebar .brand-subtitle {
+    font-size: 0.62rem;
+    color: rgba(255,255,255,0.5);
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    font-weight: 500;
+    display: block;
+    margin-top: 2px;
+}
+
+/* ── Nav scroll area ────────────────────────────────────────────────────────── */
+.sidebar .sidebar-nav {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 14px 14px 8px;
+}
+
+.sidebar .sidebar-nav::-webkit-scrollbar { width: 3px; }
+.sidebar .sidebar-nav::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.18);
+    border-radius: 2px;
+}
+
+/* ── Base nav link ──────────────────────────────────────────────────────────── */
+/*
+  Override Bootstrap's global `a { color: var(--primary) }` which would paint
+  every sidebar link blue.  We must be explicit with color AND text-decoration
+  here so Bootstrap can't win the specificity race.
+*/
+.sidebar .nav-link,
+.sidebar .sidebar-footer .nav-link {
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+    padding: 11px 14px !important;
+    margin-bottom: 3px !important;
+    border-radius: 11px !important;
+    text-decoration: none !important;
+    color: var(--sb-text) !important;
+    background: transparent !important;
+    border: 1px solid transparent !important;
+    font-size: 0.895rem !important;
+    font-weight: 500 !important;
+    position: relative !important;
+    transition: all 0.22s var(--sb-ease) !important;
+    cursor: pointer !important;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* ── Hover ──────────────────────────────────────────────────────────────────── */
+.sidebar .nav-link:hover,
+.sidebar .sidebar-footer .nav-link:hover {
+    background: var(--sb-hover-bg) !important;
+    color: var(--sb-text-active) !important;
+    border-color: rgba(255,255,255,0.10) !important;
+    transform: translateX(3px) !important;
+    text-decoration: none !important;
+}
+
+/* ── ACTIVE STATE ───────────────────────────────────────────────────────────── */
+.sidebar .nav-link.active,
+.sidebar .sidebar-footer .nav-link.active {
+    background: var(--sb-active-bg) !important;
+    color: var(--sb-text-active) !important;
+    font-weight: 600 !important;
+    border-color: rgba(255,255,255,0.22) !important;
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.12),
+        0 3px 10px rgba(0,0,0,0.20) !important;
+    transform: translateX(4px) !important;
+    text-decoration: none !important;
+}
+
+/* left-edge accent bar */
+.sidebar .nav-link.active::before,
+.sidebar .sidebar-footer .nav-link.active::before {
+    content: '';
+    position: absolute;
+    left: -14px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 4px;
+    height: 22px;
+    background: #ffffff;
+    border-radius: 0 3px 3px 0;
+    box-shadow: 0 0 10px rgba(255,255,255,0.50);
+}
+
+/* hover on already-active link */
+.sidebar .nav-link.active:hover,
+.sidebar .sidebar-footer .nav-link.active:hover {
+    background: rgba(255,255,255,0.22) !important;
+    transform: translateX(6px) !important;
+}
+
+/* ── Icon wrapper ───────────────────────────────────────────────────────────── */
+.sidebar .nav-icon {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 34px !important;
+    height: 34px !important;
+    border-radius: 9px !important;
+    flex-shrink: 0 !important;
+    transition: all 0.22s var(--sb-ease) !important;
+    background: transparent !important;
+}
+
+.sidebar .nav-icon svg {
+    opacity: 0.75;
+    transition: opacity 0.2s ease;
+    display: block;
+}
+
+.sidebar .nav-link:hover   .nav-icon { background: rgba(255,255,255,0.10) !important; }
+.sidebar .nav-link:hover   .nav-icon svg { opacity: 1; }
+.sidebar .nav-link.active  .nav-icon {
+    background: rgba(255,255,255,0.20) !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+    transform: scale(1.06);
+}
+.sidebar .nav-link.active  .nav-icon svg { opacity: 1; }
+.sidebar .nav-link.active:hover .nav-icon { transform: scale(1.12) !important; }
+
+/* ── Label ──────────────────────────────────────────────────────────────────── */
+.sidebar .nav-label {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ── Active indicator dot (rendered from Blazor when active) ─────────────────── */
+.sidebar .nav-indicator {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #ffffff;
+    flex-shrink: 0;
+    box-shadow: 0 0 0 3px rgba(255,255,255,0.20), 0 0 8px rgba(255,255,255,0.45);
+    animation: sb-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes sb-pulse {
+    0%,100% { opacity:1; transform:scale(1); }
+    50%      { opacity:.75; transform:scale(1.25); }
+}
+
+/* ── Footer ─────────────────────────────────────────────────────────────────── */
+.sidebar .sidebar-footer {
+    border-top: 1px solid var(--sb-border);
+    padding: 14px;
+    flex-shrink: 0;
+}
+
+.sidebar .sidebar-footer .nav-link {
+    margin-bottom: 0 !important;
+    background: rgba(255,255,255,0.05) !important;
+    border-color: rgba(255,255,255,0.08) !important;
+}
+
+/* ── Focus ring ─────────────────────────────────────────────────────────────── */
+.sidebar .nav-link:focus-visible {
+    outline: 2px solid rgba(255,255,255,0.65) !important;
+    outline-offset: 2px !important;
+}
+
+/* ── Reduced motion ─────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+    .sidebar .nav-link,
+    .sidebar .nav-icon,
+    .sidebar .nav-indicator {
+        transition: none !important;
+        animation: none !important;
+        transform: none !important;
+    }
+}
