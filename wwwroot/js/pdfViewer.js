@@ -47,14 +47,19 @@
     }
 
     var pdfDoc = null;
+    var renderedPages = {};
+    var pendingRender = {};
+    var container = null;
+    var loadingEl = null;
+    var observer = null;
 
     window.initPdfViewer = function (bookId) {
-        var container = document.getElementById('pdfViewer');
-        var loadingEl = document.getElementById('pdfLoading');
+        container = document.getElementById('pdfViewer');
+        loadingEl = document.getElementById('pdfLoading');
         if (!container) return;
 
         loadPdfJs(function () {
-            loadSecurePdf(bookId, container, loadingEl);
+            loadSecurePdf(bookId);
         });
     };
 
@@ -70,13 +75,12 @@
             callback();
         };
         script.onerror = function () {
-            var el = document.getElementById('pdfLoading');
-            if (el) el.innerHTML = '<span style="color:red">Failed to load PDF viewer. Please refresh the page.</span>';
+            if (loadingEl) loadingEl.innerHTML = '<span style="color:red">Failed to load PDF viewer. Please refresh the page.</span>';
         };
         document.head.appendChild(script);
     }
 
-    function loadSecurePdf(bookId, container, loadingEl) {
+    function loadSecurePdf(bookId) {
         loadingEl.style.display = 'flex';
 
         fetch('/api/pdf/view-secure/' + bookId, {
@@ -109,30 +113,65 @@
             container.innerHTML = '';
             container.style.textAlign = 'center';
 
-            var pageNum = 1;
-            function renderPage() {
-                if (pageNum > pdfDoc.numPages) return;
-                pdfDoc.getPage(pageNum).then(function (page) {
-                    var viewport = page.getViewport({ scale: 1.5 });
-                    var canvas = document.createElement('canvas');
-                    canvas.className = 'pdf-page-canvas';
-                    canvas.height = viewport.height;
-                    canvas.width = viewport.width;
-
-                    container.appendChild(canvas);
-
-                    var ctx = canvas.getContext('2d');
-                    var renderTask = page.render({ canvasContext: ctx, viewport: viewport });
-                    renderTask.promise.then(function () {
-                        pageNum++;
-                        renderPage();
-                    });
-                });
+            for (var i = 1; i <= pdfDoc.numPages; i++) {
+                var placeholder = document.createElement('div');
+                placeholder.className = 'pdf-page-placeholder';
+                placeholder.dataset.pageNum = i;
+                placeholder.style.height = '10px';
+                container.appendChild(placeholder);
             }
-            renderPage();
+
+            observer = new IntersectionObserver(onPageVisible, {
+                root: container.parentElement || container,
+                rootMargin: '200px 0px',
+                threshold: 0.01
+            });
+
+            document.querySelectorAll('.pdf-page-placeholder').forEach(function (el) {
+                observer.observe(el);
+            });
         })
         .catch(function (err) {
             if (loadingEl) loadingEl.innerHTML = '<span style="color:red">Failed to load PDF: ' + err.message + '</span>';
+        });
+    }
+
+    function onPageVisible(entries) {
+        entries.forEach(function (entry) {
+            if (!entry.isIntersecting) return;
+            var placeholder = entry.target;
+            var pageNum = parseInt(placeholder.dataset.pageNum, 10);
+
+            observer.unobserve(placeholder);
+
+            if (renderedPages[pageNum]) return;
+
+            if (pendingRender[pageNum]) return;
+            pendingRender[pageNum] = true;
+
+            renderPageAsync(pageNum, placeholder);
+        });
+    }
+
+    function renderPageAsync(pageNum, placeholder) {
+        pdfDoc.getPage(pageNum).then(function (page) {
+            var viewport = page.getViewport({ scale: 1.5 });
+
+            var canvas = document.createElement('canvas');
+            canvas.className = 'pdf-page-canvas';
+            canvas.height = viewport.height;
+            canvas.width = viewport.width;
+            canvas.dataset.pageNum = pageNum;
+
+            placeholder.parentNode.replaceChild(canvas, placeholder);
+
+            var ctx = canvas.getContext('2d');
+            return page.render({ canvasContext: ctx, viewport: viewport }).promise;
+        }).then(function () {
+            renderedPages[pageNum] = true;
+            delete pendingRender[pageNum];
+        }).catch(function (err) {
+            delete pendingRender[pageNum];
         });
     }
 

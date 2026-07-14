@@ -83,7 +83,7 @@ app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 app.MapControllers();
-app.MapHub<PrintJobHub>("/hubs/print");
+app.MapHub<PrintHub>("/hubs/print");
 
 // Apply pending migrations and seed data
 try

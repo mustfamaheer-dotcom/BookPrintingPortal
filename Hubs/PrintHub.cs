@@ -1,18 +1,16 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using PrintingBooksPortal.Data;
-using PrintingBooksPortal.Models;
-using PrintingBooksPortal.Services;
 
 namespace PrintingBooksPortal.Hubs;
 
 [Authorize(Roles = "Shop")]
-public class PrintJobHub : Hub
+public class PrintHub : Hub
 {
     private readonly AppDbContext _db;
-    private readonly ILogger<PrintJobHub> _logger;
+    private readonly ILogger<PrintHub> _logger;
 
-    public PrintJobHub(AppDbContext db, ILogger<PrintJobHub> logger)
+    public PrintHub(AppDbContext db, ILogger<PrintHub> logger)
     {
         _db = db;
         _logger = logger;
@@ -35,13 +33,13 @@ public class PrintJobHub : Hub
 
     public override async Task OnConnectedAsync()
     {
-        _logger.LogInformation("PrintJobHub client connected: {ConnectionId}", Context.ConnectionId);
+        _logger.LogInformation("PrintHub client connected: {ConnectionId}", Context.ConnectionId);
         await base.OnConnectedAsync();
     }
 
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
-        _logger.LogInformation("PrintJobHub client disconnected: {ConnectionId}", Context.ConnectionId);
+        _logger.LogInformation("PrintHub client disconnected: {ConnectionId}", Context.ConnectionId);
         await base.OnDisconnectedAsync(exception);
     }
 }
