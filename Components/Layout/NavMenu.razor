@@ -1,5 +1,6 @@
 ﻿@inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthState
+@implements IDisposable
 
 <div class="sidebar">
     <div class="navbar-brand">
@@ -14,17 +15,24 @@
         </div>
     </div>
 
-    <nav>
+    <nav class="sidebar-nav">
         @foreach (var group in NavGroups)
         {
             <AuthorizeView Roles="@group.Roles">
                 <Authorized>
                     @foreach (var item in group.Items)
                     {
-                        <NavLink class="nav-link" href="@item.Href" Match="@item.Match" ActiveClass="active">
+                        <a class="nav-link @(IsActive(item.Href) ? "active" : "")" 
+                           href="@item.Href"
+                           @onclick="@(() => NavigateToPage(item.Href))"
+                           @onclick:preventDefault="false">
                             <span class="nav-icon">@((MarkupString)item.IconSvg)</span>
                             <span class="nav-label">@item.Label</span>
-                        </NavLink>
+                            @if (IsActive(item.Href))
+                            {
+                                <span class="nav-indicator"></span>
+                            }
+                        </a>
                     }
                 </Authorized>
             </AuthorizeView>
@@ -32,19 +40,66 @@
     </nav>
 
     <div class="sidebar-footer">
-        <NavLink class="nav-link" href="" Match="NavLinkMatch.All" ActiveClass="active">
+        <a class="nav-link @(IsActive("/") ? "active" : "")" 
+           href="/"
+           @onclick="@(() => NavigateToPage("/"))"
+           @onclick:preventDefault="false">
             <span class="nav-icon">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
                 </svg>
             </span>
             <span class="nav-label">Home</span>
-        </NavLink>
+            @if (IsActive("/"))
+            {
+                <span class="nav-indicator"></span>
+            }
+        </a>
     </div>
 </div>
 
 @code {
-    private record NavItem(string Label, string Href, string IconSvg, NavLinkMatch Match);
+    private string currentUri = "";
+
+    protected override void OnInitialized()
+    {
+        currentUri = Navigation.ToBaseRelativePath(Navigation.Uri);
+        Navigation.LocationChanged += OnLocationChanged;
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        currentUri = Navigation.ToBaseRelativePath(e.Location);
+        InvokeAsync(StateHasChanged);
+    }
+
+    private bool IsActive(string href)
+    {
+        // Remove leading slash from href for comparison
+        var normalizedHref = href.TrimStart('/');
+        var normalizedCurrent = currentUri.TrimStart('/');
+
+        // Exact match for home
+        if (href == "/" || href == "")
+        {
+            return normalizedCurrent == "" || normalizedCurrent == "Home";
+        }
+
+        // For other pages, check if current path starts with the href
+        return normalizedCurrent.StartsWith(normalizedHref, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private void NavigateToPage(string href)
+    {
+        // This will be handled by the browser's default navigation
+    }
+
+    public void Dispose()
+    {
+        Navigation.LocationChanged -= OnLocationChanged;
+    }
+
+    private record NavItem(string Label, string Href, string IconSvg);
 
     private record NavGroup(string Roles, NavItem[] Items);
 
@@ -52,17 +107,17 @@
     [
         new("Admin",
         [
-            new("Dashboard", "/admin/dashboard", SvgIcons.Dashboard, NavLinkMatch.Prefix),
-            new("Boards", "/admin/boards", SvgIcons.Boards, NavLinkMatch.Prefix),
-            new("Books", "/admin/books", SvgIcons.Books, NavLinkMatch.Prefix),
-            new("Shops", "/admin/shops", SvgIcons.Shops, NavLinkMatch.Prefix),
-            new("Assignments", "/admin/assignments", SvgIcons.Assignments, NavLinkMatch.Prefix),
-            new("Analytics", "/admin/analytics", SvgIcons.Analytics, NavLinkMatch.Prefix),
+            new("Dashboard", "/admin/dashboard", SvgIcons.Dashboard),
+            new("Boards", "/admin/boards", SvgIcons.Boards),
+            new("Books", "/admin/books", SvgIcons.Books),
+            new("Shops", "/admin/shops", SvgIcons.Shops),
+            new("Assignments", "/admin/assignments", SvgIcons.Assignments),
+            new("Analytics", "/admin/analytics", SvgIcons.Analytics),
         ]),
         new("Shop",
         [
-            new("My Books", "/shop/mybooks", SvgIcons.Books, NavLinkMatch.Prefix),
-            new("Print History", "/shop/history", SvgIcons.History, NavLinkMatch.Prefix),
+            new("My Books", "/shop/mybooks", SvgIcons.Books),
+            new("Print History", "/shop/history", SvgIcons.History),
         ]),
     ];
 
