@@ -93,10 +93,32 @@ document.addEventListener('selectstart', function (e) {
     });
 })();
 
-// Blazor interop: print function called from C#
-window.printPdf = function () {
-    // @media print CSS in app.css hides header, sidebar, overlay during printing
+// Handle print from native button click (preserves user gesture)
+window.handlePrint = function (event, bookId) {
+    var btn = event.currentTarget;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="loading-spinner me-1"></span>Logging...';
+
+    // Read copies from the input field
+    var copiesInput = document.querySelector('input[type="number"]');
+    var copies = copiesInput ? parseInt(copiesInput.value, 10) || 1 : 1;
+
+    // Log print via API (best-effort), then print
+    fetch('/api/pdf/log-print/' + bookId, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ copies: copies }),
+        credentials: 'same-origin'
+    }).catch(function () { /* best-effort */ });
+
     window.print();
+
+    // Restore button after print dialog closes
+    window.onafterprint = function () {
+        btn.disabled = false;
+        btn.innerHTML = 'Print';
+        window.onafterprint = null;
+    };
 };
 
 // Override console methods

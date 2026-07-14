@@ -5,8 +5,7 @@
 @inject UserManager<ApplicationUser> UserManager
 @inject AuthenticationStateProvider AuthState
 @inject NavigationManager Navigation
-@inject IJSRuntime JS
-@inject HttpClient Http
+
 
 @if (!authorized)
 {
@@ -35,12 +34,8 @@ else
                         <span class="input-group-text">Copies</span>
                         <input type="number" class="form-control form-control-sm" @bind="copies" min="1" max="100" />
                     </div>
-                    <button class="btn btn-danger btn-sm" @onclick="LogAndPrint" disabled="@printing">
-                        @if (printing)
-                        {
-                            <span class="loading-spinner me-1"></span>
-                        }
-                        @(printing ? "Logging..." : "Print")
+                    <button class="btn btn-danger btn-sm" onclick="handlePrint(event, @BookId)">
+                        Print
                     </button>
                 </div>
             </div>
@@ -64,7 +59,6 @@ else
     private string? shopName;
     private string? pdfUrl;
     private int copies = 1;
-    private bool printing;
     private bool authorized;
 
     protected override async Task OnInitializedAsync()
@@ -102,24 +96,5 @@ else
         pdfUrl = Navigation.ToAbsoluteUri($"/api/pdf/view/{BookId}").ToString() + "#toolbar=0&navpanes=0&scrollbar=0";
     }
 
-    private async Task LogAndPrint()
-    {
-        printing = true;
-        try
-        {
-            var response = await Http.PostAsJsonAsync($"/api/pdf/log-print/{BookId}", new { Copies = copies });
-            if (response.IsSuccessStatusCode)
-            {
-                await JS.InvokeVoidAsync("printPdf");
-            }
-        }
-        catch
-        {
-            await JS.InvokeVoidAsync("printPdf");
-        }
-        finally
-        {
-            printing = false;
-        }
-    }
+
 }
