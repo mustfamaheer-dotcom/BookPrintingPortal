@@ -6,9 +6,11 @@ public static class EgyptTime
 
     public static DateTime ToEgyptLocal(this DateTime utcDateTime)
     {
-        if (utcDateTime.Kind == DateTimeKind.Unspecified)
-            return utcDateTime;
-        return TimeZoneInfo.ConvertTimeFromUtc(
-            utcDateTime.Kind == DateTimeKind.Local ? utcDateTime.ToUniversalTime() : utcDateTime, TZ);
+        if (utcDateTime.Kind == DateTimeKind.Local)
+            utcDateTime = utcDateTime.ToUniversalTime();
+        else if (utcDateTime.Kind == DateTimeKind.Unspecified)
+            utcDateTime = DateTime.SpecifyKind(utcDateTime, DateTimeKind.Utc);
+
+        return TimeZoneInfo.ConvertTimeFromUtc(utcDateTime, TZ);
     }
 }
