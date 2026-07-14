@@ -54,7 +54,7 @@
                             @foreach (var log in logs)
                             {
                                 <tr>
-                                    <td class="text-muted">@log.PrintedAt.ToLocalTime().ToString("g")</td>
+                                    <td class="text-muted">@log.PrintedAt.ToEgyptLocal().ToString("g")</td>
                                     <td><strong>@log.BookTitle</strong></td>
                                     <td><span class="count-badge">@log.Copies</span></td>
                                     <td>@log.PrintedByUserName</td>

@@ -136,7 +136,7 @@
                                             @(shop.IsActive ? "Active" : "Inactive")
                                         </span>
                                     </td>
-                                    <td class="text-muted">@shop.CreatedAt.ToLocalTime().ToString("d")</td>
+                                    <td class="text-muted">@shop.CreatedAt.ToEgyptLocal().ToString("d")</td>
                                     <td class="text-end">
                                         <div class="action-btns">
                                             <button class="btn-icon btn-icon-edit" title="Edit" @onclick="() => { EditShop(shop); showModal = true; }">

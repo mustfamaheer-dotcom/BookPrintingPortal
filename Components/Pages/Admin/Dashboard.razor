@@ -115,7 +115,7 @@
                                     <div class="timeline-content">
                                         <div class="timeline-header">
                                             <span class="timeline-shop">@log.ShopName</span>
-                                            <span class="timeline-time">@log.PrintedAt.ToLocalTime().ToString("g")</span>
+                                            <span class="timeline-time">@log.PrintedAt.ToEgyptLocal().ToString("g")</span>
                                         </div>
                                         <div class="timeline-body">
                                             <span class="timeline-book">@log.BookTitle</span>

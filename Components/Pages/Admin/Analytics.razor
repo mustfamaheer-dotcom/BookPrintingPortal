@@ -230,7 +230,7 @@
                             @foreach (var log in recentLogs)
                             {
                                 <tr>
-                                    <td class="text-muted">@log.PrintedAt.ToLocalTime().ToString("g")</td>
+                                    <td class="text-muted">@log.PrintedAt.ToEgyptLocal().ToString("g")</td>
                                     <td>@log.ShopName</td>
                                     <td>@log.BookTitle</td>
                                     <td><strong>@log.Copies</strong></td>

@@ -152,7 +152,7 @@
                                             @(book.IsActive ? "Active" : "Inactive")
                                         </span>
                                     </td>
-                                    <td class="text-muted">@book.CreatedAt.ToLocalTime().ToString("d")</td>
+                                    <td class="text-muted">@book.CreatedAt.ToEgyptLocal().ToString("d")</td>
                                     <td class="text-end">
                                         <div class="action-btns">
                                             <button class="btn-icon btn-icon-danger" title="Delete" @onclick="() => { deletingBook = book; showDeleteModal = true; }">
