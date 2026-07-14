@@ -31,10 +31,34 @@
         loadingEl = document.getElementById('pdfLoading');
         if (!container) return;
 
+        wireCopiesControls();
+
         loadPdfJs(function () {
             loadSecurePdf(bookId);
         });
     };
+
+    function wireCopiesControls() {
+        var input = document.getElementById('copiesInput');
+        var inc = document.getElementById('copiesInc');
+        var dec = document.getElementById('copiesDec');
+        if (!input || !inc || !dec) return;
+
+        inc.addEventListener('click', function () {
+            var v = parseInt(input.value, 10) || 1;
+            if (v < 100) input.value = v + 1;
+        });
+        dec.addEventListener('click', function () {
+            var v = parseInt(input.value, 10) || 1;
+            if (v > 1) input.value = v - 1;
+        });
+        input.addEventListener('change', function () {
+            var v = parseInt(input.value, 10) || 1;
+            if (v < 1) v = 1;
+            if (v > 100) v = 100;
+            input.value = v;
+        });
+    }
 
     function loadPdfJs(callback) {
         if (window.pdfjsLib) {
@@ -82,8 +106,11 @@
             var loadingTask = pdfjsLib.getDocument({ data: bytes });
 
             loadingTask.onProgress = function (progress) {
-                var pct = Math.round((progress.loaded / progress.total) * 100);
-                loadingEl.innerHTML = '<div class="loading-spinner mb-2"></div><span>Loading... ' + pct + '%</span>';
+                var pct = Math.min(Math.round((progress.loaded / progress.total) * 100), 100);
+                var text = loadingEl.querySelector('.pdf-loading-text');
+                var bar = loadingEl.querySelector('.pdf-loading-bar span');
+                if (text) text.textContent = 'Loading... ' + pct + '%';
+                if (bar) bar.style.width = pct + '%';
             };
 
             pdfDoc = await loadingTask.promise;
@@ -164,10 +191,12 @@
 
         if (success) {
             titleEl.textContent = 'Print Successful';
-            iconEl.innerHTML = '<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#28a745" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>';
+            iconEl.className = 'print-modal-icon print-modal-icon-success';
+            iconEl.innerHTML = '<svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>';
         } else {
             titleEl.textContent = 'Print Failed';
-            iconEl.innerHTML = '<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#dc3545" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>';
+            iconEl.className = 'print-modal-icon print-modal-icon-error';
+            iconEl.innerHTML = '<svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>';
         }
 
         msgEl.textContent = message;
