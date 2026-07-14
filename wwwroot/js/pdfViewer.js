@@ -202,38 +202,11 @@
             }
 
             var jobId = serverData.jobId;
-            console.log('Print Job Logged. Job ID: ' + jobId);
 
-            var directPrintSuccess = false;
-            try {
-                var agentResponse = await fetch('http://localhost:8080/api/print-job', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        jobId: jobId,
-                        copies: 1,
-                        source: 'web-portal'
-                    })
-                });
-
-                if (agentResponse.ok) {
-                    var agentData = await agentResponse.json();
-                    if (agentData.success) {
-                        directPrintSuccess = true;
-                        alert('\u2705 Document sent directly to your connected printer!');
-                    }
-                }
-            } catch (agentError) {
-                console.warn('Local Print Agent is offline or unreachable. Falling back to browser print.', agentError);
-            }
-
-            if (!directPrintSuccess) {
-                alert('\u26A0\uFE0F Local Printer Agent not detected. Start the agent (dotnet run) on this machine and retry.\n\nOpening browser print dialog (heavy watermark is baked into every page).');
-                window.print();
-            }
+            if (loadingEl) loadingEl.innerText = 'Downloading encrypted print file...';
+            window.location.href = '/api/pdf/download-secured/' + jobId;
 
         } catch (error) {
-            console.error(error);
             alert('\u274C Error: ' + error.message);
         } finally {
             if (loadingEl) loadingEl.innerText = '';
