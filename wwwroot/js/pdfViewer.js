@@ -13,10 +13,10 @@
     }, true);
 
     document.addEventListener('dragstart', function (e) {
-        if (e.target.closest('.pdf-container')) e.preventDefault();
+        if (e.target && typeof e.target.closest === 'function' && e.target.closest('.pdf-container')) e.preventDefault();
     });
     document.addEventListener('selectstart', function (e) {
-        if (e.target.closest('.pdf-container')) e.preventDefault();
+        if (e.target && typeof e.target.closest === 'function' && e.target.closest('.pdf-container')) e.preventDefault();
     });
 
     var pdfDoc = null;

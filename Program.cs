@@ -100,13 +100,19 @@ try
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Could not apply migrations automatically. Attempting EnsureCreated...");
-            await db.Database.EnsureCreatedAsync();
+            logger.LogWarning(ex, "Could not apply migrations automatically. The SettingsService will auto-create the SystemSettings table on first access.");
         }
     }
     else
     {
-        await db.Database.EnsureCreatedAsync();
+        try
+        {
+            await db.Database.MigrateAsync();
+        }
+        catch
+        {
+            await db.Database.EnsureCreatedAsync();
+        }
     }
 
     var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
