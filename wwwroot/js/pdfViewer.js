@@ -75,39 +75,28 @@ document.addEventListener('selectstart', function (e) {
     }
 });
 
-// PDF overlay: blocks right-click and forwards scroll to iframe
-document.addEventListener('DOMContentLoaded', function () {
+// PDF overlay: blocks right-click, forwards scroll to iframe
+(function () {
     const overlay = document.getElementById('pdfOverlay');
     const iframe = document.getElementById('pdfViewer');
     if (!overlay || !iframe) return;
 
-    // Forward wheel events from overlay to iframe for scrolling
     overlay.addEventListener('wheel', function (e) {
         if (iframe && iframe.contentWindow) {
             iframe.contentWindow.scrollBy(0, e.deltaY);
         }
     }, { passive: true });
 
-    // Block context menu on overlay
     overlay.addEventListener('contextmenu', function (e) {
         e.preventDefault();
         return false;
     });
-});
+})();
 
 // Blazor interop: print function called from C#
 window.printPdf = function () {
-    const iframe = document.getElementById('pdfViewer');
-    if (iframe && iframe.contentWindow) {
-        try {
-            iframe.contentWindow.focus();
-            iframe.contentWindow.print();
-        } catch (e) {
-            window.print();
-        }
-    } else {
-        window.print();
-    }
+    // @media print CSS in app.css hides header, sidebar, overlay during printing
+    window.print();
 };
 
 // Override console methods
