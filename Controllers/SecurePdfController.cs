@@ -92,7 +92,8 @@ public class SecurePdfController : ControllerBase
         {
             var originalBytes = await System.IO.File.ReadAllBytesAsync(_fileStorage.GetFilePath(book.FilePath));
             var watermarkEnabled = await _settingsService.IsWatermarkEnabledAsync();
-            var watermarked = _watermarkService.ApplyWatermark(originalBytes, shopName, user.UserName ?? "Unknown", DateTime.UtcNow, watermarkEnabled);
+            var watermarkText = await _settingsService.GetWatermarkTextAsync();
+            var watermarked = _watermarkService.ApplyWatermark(originalBytes, shopName, user.UserName ?? "Unknown", DateTime.UtcNow, watermarkEnabled, watermarkText);
             return Ok(new { pdfData = Convert.ToBase64String(watermarked), watermarkEnabled });
         }
         catch (Exception ex)
@@ -139,7 +140,8 @@ public class SecurePdfController : ControllerBase
         {
             var originalBytes = await System.IO.File.ReadAllBytesAsync(filePath);
             var watermarkEnabled = await _settingsService.IsWatermarkEnabledAsync();
-            var watermarked = _watermarkService.ApplyWatermark(originalBytes, shopName, user.UserName ?? "Unknown", DateTime.UtcNow, watermarkEnabled);
+            var watermarkText = await _settingsService.GetWatermarkTextAsync();
+            var watermarked = _watermarkService.ApplyWatermark(originalBytes, shopName, user.UserName ?? "Unknown", DateTime.UtcNow, watermarkEnabled, watermarkText);
             var securedBytes = _pdfSecurity.EncryptPdfWithPassword(watermarked, userPass, ownerPass);
 
             var secureDir = Path.Combine(Directory.GetCurrentDirectory(), "SecurePrints");
@@ -244,7 +246,8 @@ public class SecurePdfController : ControllerBase
         {
             var originalBytes = await System.IO.File.ReadAllBytesAsync(filePath);
             var watermarkEnabled = await _settingsService.IsWatermarkEnabledAsync();
-            var watermarked = _watermarkService.ApplyWatermark(originalBytes, shopName, userName, DateTime.UtcNow, watermarkEnabled);
+            var watermarkText = await _settingsService.GetWatermarkTextAsync();
+            var watermarked = _watermarkService.ApplyWatermark(originalBytes, shopName, userName, DateTime.UtcNow, watermarkEnabled, watermarkText);
             return File(new MemoryStream(watermarked), "application/pdf", enableRangeProcessing: false);
         }
         catch (Exception ex)

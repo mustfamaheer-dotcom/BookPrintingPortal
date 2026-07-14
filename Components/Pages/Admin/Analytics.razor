@@ -10,196 +10,156 @@
             <h1>Analytics Dashboard</h1>
             <p class="page-subtitle">Detailed insights into printing activity across all shops</p>
         </div>
-    </div>
-
-    <div class="row g-4 mb-4">
-        <div class="col-md-3 col-6">
-            <div class="stat-card stat-card-primary">
-                <div class="stat-card-inner">
-                    <div class="stat-icon">
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-                    </div>
-                    <div class="stat-info">
-                        <div class="stat-label">Total Prints</div>
-                        <div class="stat-value">@totalPrints</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3 col-6">
-            <div class="stat-card stat-card-success">
-                <div class="stat-card-inner">
-                    <div class="stat-icon">
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-                    </div>
-                    <div class="stat-info">
-                        <div class="stat-label">Active Shops</div>
-                        <div class="stat-value">@activeShops</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3 col-6">
-            <div class="stat-card stat-card-purple">
-                <div class="stat-card-inner">
-                    <div class="stat-icon">
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-                    </div>
-                    <div class="stat-info">
-                        <div class="stat-label">Total Books</div>
-                        <div class="stat-value">@totalBooks</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3 col-6">
-            <div class="stat-card stat-card-rose">
-                <div class="stat-card-inner">
-                    <div class="stat-icon">
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                    </div>
-                    <div class="stat-info">
-                        <div class="stat-label">Total Logs</div>
-                        <div class="stat-value">@totalLogs</div>
-                    </div>
-                </div>
+        <div class="page-header-actions">
+            <div class="period-selector">
+                <button class="period-btn @(period == 7 ? "active" : "")" @onclick="() => { period = 7; _ = LoadDataAsync(); }">7 Days</button>
+                <button class="period-btn @(period == 30 ? "active" : "")" @onclick="() => { period = 30; _ = LoadDataAsync(); }">30 Days</button>
+                <button class="period-btn @(period == 0 ? "active" : "")" @onclick="() => { period = 0; _ = LoadDataAsync(); }">All Time</button>
             </div>
         </div>
     </div>
 
-    <div class="row g-4 mb-4">
-        <div class="col-md-6">
-            <div class="content-card">
-                <div class="card-header d-flex align-items-center justify-content-between">
-                    <h5>Prints per Shop</h5>
-                    <span class="count-badge">@(printsPerShop?.Count ?? 0)</span>
-                </div>
-                <div class="card-body p-0">
-                    @if (printsPerShop != null && printsPerShop.Any())
-                    {
-                        <div class="table-container">
-                            <table class="table table-modern">
-                                <thead><tr><th>Shop</th><th class="text-end">Prints</th></tr></thead>
-                                <tbody>
-                                    @foreach (var item in printsPerShop.OrderByDescending(x => x.Value))
-                                    {
-                                        <tr>
-                                            <td>
-                                                <div class="d-flex align-items-center gap-2">
-                                                    <div class="bar-mini" style="width: @Math.Min(item.Value * 100 / printsPerShop.Values.Max(), 100)%;"></div>
-                                                    @item.Key
-                                                </div>
-                                            </td>
-                                            <td class="text-end"><strong>@item.Value</strong></td>
-                                        </tr>
-                                    }
-                                </tbody>
-                            </table>
-                        </div>
-                    }
-                    else
-                    {
-                        <div class="empty-state"><p>No print data yet.</p></div>
-                    }
-                </div>
+    <div class="analytics-grid">
+        <div class="stat-card stat-card-primary">
+            <div class="stat-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+            </div>
+            <div class="stat-body">
+                <div class="stat-label">Total Prints</div>
+                <div class="stat-value">@totalPrints</div>
             </div>
         </div>
-        <div class="col-md-6">
-            <div class="content-card">
-                <div class="card-header d-flex align-items-center justify-content-between">
-                    <h5>Prints per Book</h5>
-                    <span class="count-badge">@(printsPerBook?.Count ?? 0)</span>
-                </div>
-                <div class="card-body p-0">
-                    @if (printsPerBook != null && printsPerBook.Any())
-                    {
-                        <div class="table-container">
-                            <table class="table table-modern">
-                                <thead><tr><th>Book</th><th class="text-end">Prints</th></tr></thead>
-                                <tbody>
-                                    @foreach (var item in printsPerBook.OrderByDescending(x => x.Value))
-                                    {
-                                        <tr>
-                                            <td>
-                                                <div class="d-flex align-items-center gap-2">
-                                                    <div class="bar-mini bar-purple" style="width: @Math.Min(item.Value * 100 / printsPerBook.Values.Max(), 100)%;"></div>
-                                                    @item.Key
-                                                </div>
-                                            </td>
-                                            <td class="text-end"><strong>@item.Value</strong></td>
-                                        </tr>
-                                    }
-                                </tbody>
-                            </table>
-                        </div>
-                    }
-                    else
-                    {
-                        <div class="empty-state"><p>No print data yet.</p></div>
-                    }
-                </div>
+        <div class="stat-card stat-card-success">
+            <div class="stat-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            </div>
+            <div class="stat-body">
+                <div class="stat-label">Active Shops</div>
+                <div class="stat-value">@activeShops</div>
+            </div>
+        </div>
+        <div class="stat-card stat-card-purple">
+            <div class="stat-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+            </div>
+            <div class="stat-body">
+                <div class="stat-label">Total Books</div>
+                <div class="stat-value">@totalBooks</div>
+            </div>
+        </div>
+        <div class="stat-card stat-card-rose">
+            <div class="stat-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            </div>
+            <div class="stat-body">
+                <div class="stat-label">Total Logs</div>
+                <div class="stat-value">@totalLogs</div>
             </div>
         </div>
     </div>
 
-    <div class="row g-4 mb-4">
-        <div class="col-12">
-            <div class="content-card">
-                <div class="card-header d-flex align-items-center justify-content-between">
-                    <h5>Daily Trends (Last 7 Days)</h5>
-                    @if (dailyTrends != null && dailyTrends.Any())
-                    {
-                        <div class="trend-summary">
-                            <span class="trend-total">@dailyTrends.Sum(d => d.PrintCount) prints</span>
-                            <span class="trend-sep">|</span>
-                            <span class="trend-total">@dailyTrends.Sum(d => d.TotalCopies) copies</span>
-                        </div>
-                    }
-                </div>
-                <div class="card-body p-0">
-                    @if (dailyTrends == null)
-                    {
-                        <div class="loading-placeholder">Loading...</div>
-                    }
-                    else if (!dailyTrends.Any())
-                    {
-                        <div class="empty-state"><p>No data for last 7 days.</p></div>
-                    }
-                    else
-                    {
-                        <div class="table-container">
-                            <table class="table table-modern">
-                                <thead>
-                                    <tr><th>Date</th><th>Prints</th><th>Copies</th><th>Bar</th></tr>
-                                </thead>
-                                <tbody>
-                                    @{
-                                        var maxCopies = dailyTrends.Max(d => d.TotalCopies);
-                                    }
-                                    @foreach (var item in dailyTrends)
-                                    {
-                                        <tr>
-                                            <td><strong>@item.Date.ToString("ddd, MMM dd")</strong></td>
-                                            <td><span class="count-badge">@item.PrintCount</span></td>
-                                            <td><strong>@item.TotalCopies</strong></td>
-                                            <td style="width: 200px;">
-                                                <div class="trend-bar-track">
-                                                    <div class="trend-bar-fill" style="width: @(maxCopies > 0 ? item.TotalCopies * 100 / maxCopies : 0)%;"></div>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    }
-                                </tbody>
-                            </table>
-                        </div>
-                    }
-                </div>
+    <div class="analytics-row">
+        <div class="analytics-card">
+            <div class="card-header">
+                <h5>Prints per Shop</h5>
+                <span class="count-badge">@(printsPerShop?.Count ?? 0)</span>
+            </div>
+            <div class="card-body p-0">
+                @if (printsPerShop != null && printsPerShop.Any())
+                {
+                    <div class="chart-list">
+                        @foreach (var item in printsPerShop.OrderByDescending(x => x.Value))
+                        {
+                            <div class="chart-row">
+                                <span class="chart-label">@item.Key</span>
+                                <div class="chart-bar-track">
+                                    <div class="chart-bar chart-bar-primary" style="width: @(Math.Min(item.Value * 100 / printsPerShop.Values.Max(), 100))%;"></div>
+                                </div>
+                                <span class="chart-value">@item.Value</span>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="empty-state"><p>No print data yet.</p></div>
+                }
+            </div>
+        </div>
+        <div class="analytics-card">
+            <div class="card-header">
+                <h5>Prints per Book</h5>
+                <span class="count-badge">@(printsPerBook?.Count ?? 0)</span>
+            </div>
+            <div class="card-body p-0">
+                @if (printsPerBook != null && printsPerBook.Any())
+                {
+                    <div class="chart-list">
+                        @foreach (var item in printsPerBook.OrderByDescending(x => x.Value))
+                        {
+                            <div class="chart-row">
+                                <span class="chart-label">@item.Key</span>
+                                <div class="chart-bar-track">
+                                    <div class="chart-bar chart-bar-purple" style="width: @(Math.Min(item.Value * 100 / printsPerBook.Values.Max(), 100))%;"></div>
+                                </div>
+                                <span class="chart-value">@item.Value</span>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="empty-state"><p>No print data yet.</p></div>
+                }
             </div>
         </div>
     </div>
 
-    <div class="content-card">
-        <div class="card-header d-flex align-items-center justify-content-between">
+    <div class="analytics-card full-width">
+        <div class="card-header">
+            <h5>Daily Trends</h5>
+            @if (dailyTrends != null && dailyTrends.Any())
+            {
+                <div class="trend-summary">
+                    <span class="trend-total">@dailyTrends.Sum(d => d.PrintCount) prints</span>
+                    <span class="trend-sep">|</span>
+                    <span class="trend-total">@dailyTrends.Sum(d => d.TotalCopies) copies</span>
+                </div>
+            }
+        </div>
+        <div class="card-body p-0">
+            @if (dailyTrends == null)
+            {
+                <div class="loading-placeholder">Loading...</div>
+            }
+            else if (!dailyTrends.Any())
+            {
+                <div class="empty-state"><p>No data for selected period.</p></div>
+            }
+            else
+            {
+                var maxCopies = dailyTrends.Max(d => d.TotalCopies);
+                <div class="bar-chart-container">
+                    @foreach (var item in dailyTrends)
+                    {
+                        var barH = maxCopies > 0 ? item.TotalCopies * 100 / maxCopies : 0;
+                        <div class="bar-chart-column">
+                            <div class="bar-chart-value">@item.PrintCount</div>
+                            <div class="bar-chart-bar-wrap">
+                                <div class="bar-chart-bar" style="height: @(barH)%;">
+                                    <div class="bar-chart-bar-inner"></div>
+                                </div>
+                            </div>
+                            <div class="bar-chart-label">@item.Date.ToEgyptLocal().ToString("MMM dd")</div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="analytics-card full-width">
+        <div class="card-header">
             <h5>Recent Print Logs</h5>
             <span class="count-badge">@(recentLogs?.Count ?? 0) entries</span>
         </div>
@@ -214,7 +174,7 @@
             }
             else
             {
-                <div class="table-container" style="max-height: 400px; overflow-y: auto;">
+                <div class="table-container" style="max-height: 380px; overflow-y: auto;">
                     <table class="table table-modern">
                         <thead>
                             <tr>
@@ -231,7 +191,7 @@
                             {
                                 <tr>
                                     <td class="text-muted">@log.PrintedAt.ToEgyptLocal().ToString("g")</td>
-                                    <td>@log.ShopName</td>
+                                    <td><span class="shop-tag">@log.ShopName</span></td>
                                     <td>@log.BookTitle</td>
                                     <td><strong>@log.Copies</strong></td>
                                     <td>@log.PrintedByUserName</td>
@@ -247,6 +207,7 @@
 </div>
 
 @code {
+    private int period = 7;
     private int totalPrints;
     private int activeShops;
     private int totalBooks;
@@ -265,6 +226,11 @@
 
     protected override async Task OnInitializedAsync()
     {
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
         totalPrints = await PrintLogging.GetTotalPrintsAsync();
         activeShops = await Db.Shops.CountAsync(s => s.IsActive);
         totalBooks = await Db.Books.CountAsync(b => b.IsActive);
@@ -274,10 +240,12 @@
         recentLogs = await PrintLogging.GetRecentLogsAsync(100);
 
         var now = DateTime.UtcNow;
-        var weekAgo = now.AddDays(-7);
-        dailyTrends = await Db.PrintLogs
-            .AsNoTracking()
-            .Where(l => l.PrintedAt >= weekAgo)
+        DateTime? cutoff = period > 0 ? now.AddDays(-period) : null;
+        var query = Db.PrintLogs.AsNoTracking();
+        if (cutoff.HasValue)
+            query = query.Where(l => l.PrintedAt >= cutoff.Value);
+
+        dailyTrends = await query
             .GroupBy(l => l.PrintedAt.Date)
             .Select(g => new DailyTrend
             {

@@ -1,6 +1,7 @@
 using PdfSharpCore.Pdf;
 using PdfSharpCore.Pdf.IO;
 using PdfSharpCore.Drawing;
+using System.Text.RegularExpressions;
 
 namespace PrintingBooksPortal.Services;
 
@@ -13,16 +14,27 @@ public class WatermarkService : IWatermarkService
 
     public byte[] ApplyWatermark(byte[] pdfBytes, string shopName, string userName, DateTime timestamp, bool enabled)
     {
+        return ApplyWatermark(pdfBytes, shopName, userName, timestamp, enabled, null);
+    }
+
+    public byte[] ApplyWatermark(byte[] pdfBytes, string shopName, string userName, DateTime timestamp, bool enabled, string? customText)
+    {
         if (!enabled)
         {
             return pdfBytes;
         }
 
+        string watermarkText = customText ?? $"LICENSED TO: {shopName}\nUSER: {userName}\nDATE: {timestamp:yyyy-MM-dd HH:mm}\nDO NOT DISTRIBUTE";
+
+        // Replace placeholders
+        watermarkText = watermarkText
+            .Replace("{shopName}", shopName)
+            .Replace("{userName}", userName)
+            .Replace("{date}", timestamp.ToString("yyyy-MM-dd HH:mm"))
+            .Replace("{timestamp}", timestamp.ToString("yyyy-MM-dd HH:mm:ss"));
+
         using var inputStream = new MemoryStream(pdfBytes);
-
         using var document = PdfReader.Open(inputStream, PdfDocumentOpenMode.Modify);
-
-        string watermarkText = $"LICENSED TO: {shopName}\nUSER: {userName}\nDATE: {timestamp:yyyy-MM-dd HH:mm}\nDO NOT DISTRIBUTE";
 
         foreach (var page in document.Pages)
         {
