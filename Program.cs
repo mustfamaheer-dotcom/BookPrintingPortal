@@ -49,6 +49,7 @@ builder.Services.AddAuthorization(options =>
 
 builder.Services.AddScoped<FileStorageService>();
 builder.Services.AddScoped<PrintLoggingService>();
+builder.Services.AddScoped<WatermarkService>();
 builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddRazorComponents()

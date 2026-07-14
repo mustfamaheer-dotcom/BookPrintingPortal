@@ -97,13 +97,13 @@ document.addEventListener('selectstart', function (e) {
 window.handlePrint = function (event, bookId) {
     var btn = event.currentTarget;
     btn.disabled = true;
-    btn.innerHTML = '<span class="loading-spinner me-1"></span>Logging...';
+    btn.innerHTML = '<span class="loading-spinner me-1"></span>Preparing...';
 
     // Read copies from the input field
     var copiesInput = document.querySelector('input[type="number"]');
     var copies = copiesInput ? parseInt(copiesInput.value, 10) || 1 : 1;
 
-    // Log print via API (best-effort), then print
+    // Log print via API (best-effort)
     fetch('/api/pdf/log-print/' + bookId, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -111,14 +111,18 @@ window.handlePrint = function (event, bookId) {
         credentials: 'same-origin'
     }).catch(function () { /* best-effort */ });
 
-    window.print();
-
-    // Restore button after print dialog closes
-    window.onafterprint = function () {
+    // Open watermarked PDF in new window for native print (all pages)
+    var printWindow = window.open('/api/pdf/print/' + bookId, '_blank');
+    if (!printWindow) {
+        alert('Please allow popups to print the document.');
         btn.disabled = false;
         btn.innerHTML = 'Print';
-        window.onafterprint = null;
-    };
+        return;
+    }
+
+    // Restore button immediately
+    btn.disabled = false;
+    btn.innerHTML = 'Print';
 };
 
 // Override console methods

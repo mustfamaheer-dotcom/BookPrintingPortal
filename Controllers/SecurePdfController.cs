@@ -65,6 +65,44 @@ public class SecurePdfController : ControllerBase
         return File(stream, "application/pdf", enableRangeProcessing: false);
     }
 
+    [HttpGet("print/{bookId}")]
+    [Authorize(Roles = "Shop,Admin")]
+    public async Task<IActionResult> PrintPdf(int bookId)
+    {
+        var book = await _db.Books.Include(b => b.Board).FirstOrDefaultAsync(b => b.Id == bookId && b.IsActive);
+        if (book == null)
+            return NotFound();
+
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null)
+            return Unauthorized();
+
+        var isAdmin = await _userManager.IsInRoleAsync(user, "Admin");
+        if (!isAdmin)
+        {
+            var hasAccess = await _db.ShopBookAssignments
+                .AnyAsync(a => a.ShopId == user.ShopId && a.BookId == bookId && a.IsActive);
+            if (!hasAccess)
+                return Forbid();
+        }
+
+        var filePath = _fileStorage.GetFilePath(book.FilePath);
+        if (!System.IO.File.Exists(filePath))
+            return NotFound("PDF file not found on server.");
+
+        _logger.LogInformation("User {UserId} is printing book {BookId} - {BookTitle}", user.Id, bookId, book.Title);
+
+        var ms = new MemoryStream();
+        using (var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read))
+        {
+            var watermarkService = HttpContext.RequestServices.GetRequiredService<WatermarkService>();
+            var watermarked = watermarkService.AddWatermark(fs);
+            ms.Write(watermarked, 0, watermarked.Length);
+        }
+        ms.Position = 0;
+        return File(ms, "application/pdf", enableRangeProcessing: false);
+    }
+
     [HttpPost("log-print/{bookId}")]
     [Authorize(Roles = "Shop")]
     public async Task<IActionResult> LogPrint(int bookId, [FromBody] PrintRequest request)
