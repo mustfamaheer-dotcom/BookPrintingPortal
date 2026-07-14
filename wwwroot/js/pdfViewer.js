@@ -182,71 +182,63 @@
     }
 
     window.handlePrint = async function (event, bookId) {
-        var btn = document.getElementById('printBtn');
-        if (!btn) return;
-        btn.disabled = true;
-        btn.innerHTML = '<span class="loading-spinner me-1"></span>Preparing...';
-
-        var copiesInput = document.getElementById('copiesInput');
-        var copies = copiesInput ? parseInt(copiesInput.value, 10) || 1 : 1;
-        var agentKey = 'agent-shared-secret-change-me';
+        var loadingEl = document.getElementById('pdfLoading');
+        if (loadingEl) loadingEl.innerText = 'Processing print job...';
 
         try {
-            var response = await fetch('/api/pdf/process-print', {
+            var serverResponse = await fetch('/api/pdf/process-print', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify({ bookId: bookId, copies: copies })
+                body: JSON.stringify({ bookId: bookId, copies: 1 })
             });
 
-            if (response.status === 401 || response.status === 403) {
-                alert('Access Denied: You are not authorized to print this book.');
-                btn.disabled = false;
-                btn.innerHTML = 'Print';
-                return;
+            if (!serverResponse.ok) {
+                throw new Error('Server failed to log print job. Check permissions.');
             }
 
-            var data = await response.json();
+            var serverData = await serverResponse.json();
 
-            if (!data.success) {
-                alert('Failed to initiate print job: ' + (data.error || 'Unknown error'));
-                btn.disabled = false;
-                btn.innerHTML = 'Print';
-                return;
+            if (!serverData.success) {
+                throw new Error(serverData.message || 'Failed to process print job.');
             }
 
-            var agentSuccess = false;
+            var jobId = serverData.jobId;
+            console.log('Print Job Logged. Job ID: ' + jobId);
+
+            var directPrintSuccess = false;
             try {
                 var agentResponse = await fetch('http://localhost:8080/api/print-job', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-Api-Key': agentKey
-                    },
-                    body: JSON.stringify({ jobId: data.jobId, copies: copies })
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        jobId: jobId,
+                        copies: 1,
+                        source: 'web-portal'
+                    })
                 });
+
                 if (agentResponse.ok) {
-                    agentSuccess = true;
-                    alert('Sent directly to printer!');
+                    var agentData = await agentResponse.json();
+                    if (agentData.success) {
+                        directPrintSuccess = true;
+                        alert('\u2705 Document sent directly to your connected printer!');
+                    }
                 }
-            } catch (e) {
-                console.log('Local agent not found, falling back to browser print.');
+            } catch (agentError) {
+                console.warn('Local Print Agent is offline or unreachable. Falling back to browser print.', agentError);
             }
 
-            if (!agentSuccess) {
-                if (data.password) {
-                    alert('Local printer agent offline. Using browser print dialog.\n\nIf you save as PDF, password: ' + data.password);
-                } else {
-                    alert('Local printer agent offline. Using browser print dialog.');
-                }
+            if (!directPrintSuccess) {
+                alert('\u26A0\uFE0F Local Printer Agent not detected. Opening secure browser print dialog.\n\nNote: If you \'Save as PDF\', the file will be password-protected.');
                 window.print();
             }
+
         } catch (error) {
             console.error(error);
-            alert('Print failed. Please try again.');
+            alert('\u274C Error: ' + error.message);
+        } finally {
+            if (loadingEl) loadingEl.innerText = '';
         }
-
-        btn.disabled = false;
-        btn.innerHTML = 'Print';
     };
 })();
