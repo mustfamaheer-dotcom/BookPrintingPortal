@@ -18,6 +18,7 @@ public class SecurePdfController : ControllerBase
     private readonly PrintLoggingService _printLogging;
     private readonly WatermarkService _watermarkService;
     private readonly PrintTokenService _printTokenService;
+    private readonly PdfSecurityService _pdfSecurity;
     private readonly ILogger<SecurePdfController> _logger;
 
     public SecurePdfController(
@@ -27,6 +28,7 @@ public class SecurePdfController : ControllerBase
         PrintLoggingService printLogging,
         WatermarkService watermarkService,
         PrintTokenService printTokenService,
+        PdfSecurityService pdfSecurity,
         ILogger<SecurePdfController> logger)
     {
         _db = db;
@@ -35,6 +37,7 @@ public class SecurePdfController : ControllerBase
         _printLogging = printLogging;
         _watermarkService = watermarkService;
         _printTokenService = printTokenService;
+        _pdfSecurity = pdfSecurity;
         _logger = logger;
     }
 
@@ -58,9 +61,9 @@ public class SecurePdfController : ControllerBase
         return hasAccess ? (book, user) : (null, null);
     }
 
-    [HttpGet("view/{bookId}")]
+    [HttpGet("view-secure/{bookId}")]
     [Authorize(Roles = "Shop,Admin")]
-    public async Task<IActionResult> ViewPdf(int bookId)
+    public async Task<IActionResult> ViewSecurePdf(int bookId)
     {
         var (book, user) = await ValidateAccess(bookId);
         if (book == null || user == null)
@@ -71,10 +74,99 @@ public class SecurePdfController : ControllerBase
             return NotFound("PDF file not found on server.");
 
         var shop = user.ShopId != null ? await _db.Shops.FindAsync(user.ShopId.Value) : null;
-        _logger.LogInformation("User {UserId} is viewing book {BookId} - {BookTitle}", user.Id, bookId, book.Title);
+        var shopName = shop?.Name ?? "Unknown Shop";
 
-        var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read);
-        return File(stream, "application/pdf", enableRangeProcessing: false);
+        _logger.LogInformation("User {UserId} viewing secure PDF for book {BookId}", user.Id, bookId);
+
+        try
+        {
+            using var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read);
+            var watermarked = _watermarkService.AddHeavyWatermark(fs, shopName, user.UserName ?? "Unknown", DateTime.UtcNow);
+            var base64 = Convert.ToBase64String(watermarked);
+            return Ok(new { pdfData = base64 });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Heavy watermarking failed for book {BookId}", bookId);
+            return StatusCode(500, new { error = "Failed to process PDF for viewing." });
+        }
+    }
+
+    [HttpPost("process-print")]
+    [Authorize(Roles = "Shop")]
+    public async Task<IActionResult> ProcessPrint([FromBody] ProcessPrintRequest request)
+    {
+        var user = await _userManager.GetUserAsync(User);
+        if (user?.ShopId == null)
+            return Unauthorized();
+
+        var hasAccess = await _db.ShopBookAssignments
+            .AnyAsync(a => a.ShopId == user.ShopId && a.BookId == request.BookId && a.IsActive);
+
+        if (!hasAccess)
+            return Forbid();
+
+        var book = await _db.Books.FindAsync(request.BookId);
+        if (book == null)
+            return NotFound();
+
+        var filePath = _fileStorage.GetFilePath(book.FilePath);
+        if (!System.IO.File.Exists(filePath))
+            return NotFound("PDF file not found on server.");
+
+        var shop = await _db.Shops.FindAsync(user.ShopId.Value);
+        var shopName = shop?.Name ?? "Unknown Shop";
+        var copies = Math.Max(1, request.Copies);
+
+        var jobId = Guid.NewGuid().ToString("N").Substring(0, 12).ToUpper();
+
+        _logger.LogInformation("ProcessPrint: Job={JobId}, Book={BookId}, Shop={ShopId}, Copies={Copies}",
+            jobId, request.BookId, user.ShopId, copies);
+
+        try
+        {
+            using var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read);
+            var watermarked = _watermarkService.AddHeavyWatermark(fs, shopName, user.UserName ?? "Unknown", DateTime.UtcNow);
+
+            var securedFilePath = _pdfSecurity.CreateSecurePrintFile(watermarked, jobId, out var password);
+
+            var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+            await _printLogging.LogPrintAsync(
+                user.ShopId.Value,
+                request.BookId,
+                copies,
+                user.Id,
+                user.UserName
+            );
+
+            _logger.LogInformation("Print logged: Job={JobId}, Shop={ShopId}, Book={BookId}, Copies={Copies}, IP={IP}",
+                jobId, user.ShopId, request.BookId, copies, ipAddress);
+
+            return Ok(new
+            {
+                success = true,
+                jobId,
+                password,
+                message = $"Print job {jobId} created for {copies} copy(ies). Password: {password}"
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "ProcessPrint failed for book {BookId}", request.BookId);
+            return StatusCode(500, new { success = false, error = "Failed to process print job." });
+        }
+    }
+
+    [HttpGet("print-file/{jobId}")]
+    public IActionResult GetPrintFile(string jobId, [FromQuery] string? password = null)
+    {
+        var fileBytes = _pdfSecurity.GetSecurePrintFile(jobId);
+        if (fileBytes == null)
+            return NotFound("Print job not found or expired.");
+
+        _pdfSecurity.CleanupJob(jobId);
+
+        return File(fileBytes, "application/pdf", $"print_{jobId}.pdf");
     }
 
     [HttpGet("print/{bookId}")]
@@ -120,7 +212,7 @@ public class SecurePdfController : ControllerBase
         try
         {
             using var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read);
-            var watermarked = _watermarkService.AddWatermark(fs, shopName, userId, userName);
+            var watermarked = _watermarkService.AddHeavyWatermark(fs, shopName, userName, DateTime.UtcNow);
             var ms = new MemoryStream(watermarked);
             return File(ms, "application/pdf", enableRangeProcessing: false);
         }
@@ -177,6 +269,12 @@ public class SecurePdfController : ControllerBase
 
         return Ok(new { message = "Print logged successfully", copies });
     }
+}
+
+public class ProcessPrintRequest
+{
+    public int BookId { get; set; }
+    public int Copies { get; set; } = 1;
 }
 
 public class PrintRequest

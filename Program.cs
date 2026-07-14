@@ -52,6 +52,7 @@ builder.Services.AddScoped<FileStorageService>();
 builder.Services.AddScoped<PrintLoggingService>();
 builder.Services.AddScoped<WatermarkService>();
 builder.Services.AddSingleton<PrintTokenService>();
+builder.Services.AddSingleton<PdfSecurityService>();
 builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddRazorComponents()

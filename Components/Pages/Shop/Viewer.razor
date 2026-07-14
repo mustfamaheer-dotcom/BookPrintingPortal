@@ -97,8 +97,7 @@ else
     {
         if (firstRender && authorized)
         {
-            var pdfUrl = Navigation.ToAbsoluteUri($"/api/pdf/view/{BookId}").ToString();
-            await JS.InvokeVoidAsync("initPdfViewer", pdfUrl);
+            await JS.InvokeVoidAsync("initPdfViewer", BookId);
         }
     }
 }

@@ -1140,23 +1140,37 @@ a:hover {
     margin-bottom: 1.5rem;
 }
 
-/* ===== Print Styles: Block native browser print, force custom button ===== */
+/* ===== Print Styles: Canvas-only printing, hide UI chrome ===== */
 @media print {
-    body {
-        display: none !important;
-        visibility: hidden !important;
+    body * {
+        visibility: hidden;
     }
-    body::after {
-        display: block;
+    #pdfViewer, #pdfViewer * {
         visibility: visible;
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        font-size: 1.2rem;
-        color: #333;
-        text-align: center;
-        content: "Use the 'Print' button in the toolbar to print this document.";
+    }
+    #pdfViewer {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+    }
+    nav, footer, .btn-print, .no-print,
+    .viewer-header, #printBtn, #copiesInput, .input-group {
+        display: none !important;
+    }
+    .pdf-container {
+        background: #fff !important;
+        overflow: visible !important;
+        height: auto !important;
+    }
+    .pdf-page-canvas {
+        box-shadow: none !important;
+        page-break-after: always;
+        max-width: 100% !important;
+        height: auto !important;
+    }
+    .pdf-loading {
+        display: none !important;
     }
 }
 

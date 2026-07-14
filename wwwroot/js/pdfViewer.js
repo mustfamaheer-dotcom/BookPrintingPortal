@@ -1,37 +1,24 @@
-// Secure PDF Viewer - PDF.js Canvas Rendering + Security
-
 (function () {
     'use strict';
 
-    // ─── Security: Block right-click everywhere ─────────────────────────
     document.addEventListener('contextmenu', function (e) {
         e.preventDefault();
     });
 
-    // ─── Security: Block keyboard shortcuts ─────────────────────────────
     document.addEventListener('keydown', function (e) {
         var ctrl = e.ctrlKey || e.metaKey;
         var key = e.key.toLowerCase();
 
-        // Block Save (Ctrl+S)
         if (ctrl && key === 's') { e.preventDefault(); e.stopPropagation(); return; }
-        // Block Print (Ctrl+P)
         if (ctrl && key === 'p') { e.preventDefault(); e.stopPropagation(); return; }
-        // Block View Source (Ctrl+U)
         if (ctrl && key === 'u') { e.preventDefault(); return; }
-        // Block DevTools (F12)
         if (e.key === 'F12') { e.preventDefault(); return; }
-        // Block Ctrl+Shift+I
         if (ctrl && e.shiftKey && key === 'i') { e.preventDefault(); return; }
-        // Block Ctrl+Shift+J
         if (ctrl && e.shiftKey && key === 'j') { e.preventDefault(); return; }
-        // Block Ctrl+C in viewer
         if (ctrl && key === 'c' && e.target.closest('#pdfViewer')) { e.preventDefault(); return; }
-        // Block Ctrl+Shift+C
         if (ctrl && e.shiftKey && key === 'c') { e.preventDefault(); return; }
     }, true);
 
-    // ─── Security: DevTools detection via window size ───────────────────
     var devToolsOpen = false;
     var threshold = 160;
 
@@ -48,7 +35,6 @@
         }
     }, 1000);
 
-    // ─── Security: Disable drag & selection ─────────────────────────────
     document.addEventListener('dragstart', function (e) {
         if (e.target.closest('.pdf-container')) e.preventDefault();
     });
@@ -56,19 +42,19 @@
         if (e.target.closest('.pdf-container')) e.preventDefault();
     });
 
-    // ─── Security: Override console ─────────────────────────────────────
     if (window.console) {
         window.console.log = window.console.info = window.console.warn = window.console.dir = function () { };
     }
 
-    // ─── PDF.js Viewer ──────────────────────────────────────────────────
-    window.initPdfViewer = function (pdfUrl) {
+    var pdfDoc = null;
+
+    window.initPdfViewer = function (bookId) {
         var container = document.getElementById('pdfViewer');
         var loadingEl = document.getElementById('pdfLoading');
         if (!container) return;
 
         loadPdfJs(function () {
-            renderPdf(pdfUrl, container, loadingEl);
+            loadSecurePdf(bookId, container, loadingEl);
         });
     };
 
@@ -86,30 +72,49 @@
             callback();
         };
         script.onerror = function () {
-            if (loadingEl) loadingEl.innerHTML = '<span style="color:red">Failed to load PDF viewer. Please refresh the page.</span>';
+            var el = document.getElementById('pdfLoading');
+            if (el) el.innerHTML = '<span style="color:red">Failed to load PDF viewer. Please refresh the page.</span>';
         };
         document.head.appendChild(script);
     }
 
-    function renderPdf(url, container, loadingEl) {
-        var loadingTask = pdfjsLib.getDocument(url);
-        loadingTask.onProgress = function (progress) {
-            if (loadingEl) {
+    function loadSecurePdf(bookId, container, loadingEl) {
+        loadingEl.style.display = 'flex';
+
+        fetch('/api/pdf/view-secure/' + bookId, {
+            credentials: 'same-origin'
+        })
+        .then(function (response) {
+            if (!response.ok) throw new Error('Access Denied');
+            return response.json();
+        })
+        .then(function (data) {
+            var binaryString = atob(data.pdfData);
+            var len = binaryString.length;
+            var bytes = new Uint8Array(len);
+            for (var i = 0; i < len; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+            }
+
+            var loadingTask = pdfjsLib.getDocument({ data: bytes });
+
+            loadingTask.onProgress = function (progress) {
                 var pct = Math.round((progress.loaded / progress.total) * 100);
                 loadingEl.innerHTML = '<div class="loading-spinner mb-2"></div><span>Loading... ' + pct + '%</span>';
-            }
-        };
+            };
 
-        loadingTask.promise.then(function (pdf) {
-            if (loadingEl) loadingEl.remove();
+            return loadingTask.promise;
+        })
+        .then(function (pdf) {
+            pdfDoc = pdf;
+            if (loadingEl) loadingEl.style.display = 'none';
             container.innerHTML = '';
             container.style.textAlign = 'center';
 
             var pageNum = 1;
-
             function renderPage() {
-                if (pageNum > pdf.numPages) return;
-                pdf.getPage(pageNum).then(function (page) {
+                if (pageNum > pdfDoc.numPages) return;
+                pdfDoc.getPage(pageNum).then(function (page) {
                     var viewport = page.getViewport({ scale: 1.5 });
                     var canvas = document.createElement('canvas');
                     canvas.className = 'pdf-page-canvas';
@@ -127,12 +132,12 @@
                 });
             }
             renderPage();
-        }).catch(function (err) {
+        })
+        .catch(function (err) {
             if (loadingEl) loadingEl.innerHTML = '<span style="color:red">Failed to load PDF: ' + err.message + '</span>';
         });
     }
 
-    // ─── Print Handler ──────────────────────────────────────────────────
     window.handlePrint = function (event, bookId) {
         var btn = document.getElementById('printBtn');
         if (!btn) return;
@@ -142,50 +147,41 @@
         var copiesInput = document.getElementById('copiesInput');
         var copies = copiesInput ? parseInt(copiesInput.value, 10) || 1 : 1;
 
-        // 1. Log the print
-        fetch('/api/pdf/log-print/' + bookId, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ copies: copies }),
-            credentials: 'same-origin'
-        }).catch(function () { /* best-effort */ });
-
-        // 2. Try local print agent first
-        fetch('http://localhost:8080/api/print', {
+        fetch('/api/pdf/process-print', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ bookId: bookId, copies: copies }),
-            credentials: 'omit'
-        }).then(function (response) {
-            if (response.ok) {
-                btn.disabled = false;
-                btn.innerHTML = 'Print';
+            credentials: 'same-origin'
+        })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            if (data.success) {
+                if (data.password) {
+                    alert('Print job ' + data.jobId + ' initiated.\n\nPassword for this print file: ' + data.password + '\n\nIf you save as PDF, this password will be required to open it.');
+                } else {
+                    alert('Print job ' + data.jobId + ' initiated.');
+                }
+
+                try {
+                    fetch('http://localhost:8080/api/print', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ bookId: bookId, copies: copies, jobId: data.jobId, password: data.password }),
+                        credentials: 'omit'
+                    }).catch(function () { });
+                } catch(e) { }
+
+                window.print();
             } else {
-                fallbackPrint(bookId, btn);
+                alert('Failed to initiate print job: ' + (data.error || 'Unknown error'));
             }
-        }).catch(function () {
-            fallbackPrint(bookId, btn);
+            btn.disabled = false;
+            btn.innerHTML = 'Print';
+        })
+        .catch(function (err) {
+            alert('Print failed. Please try again.');
+            btn.disabled = false;
+            btn.innerHTML = 'Print';
         });
     };
-
-    function fallbackPrint(bookId, btn) {
-        // Fallback: get a print token, open watermarked PDF in new window
-        fetch('/api/pdf/print-token/' + bookId, {
-            credentials: 'same-origin'
-        }).then(function (r) { return r.json(); }).then(function (data) {
-            var w = window.open('/api/pdf/print/' + bookId + '?token=' + data.token, '_blank');
-            if (!w) {
-                alert('Please allow popups to print the document.');
-            }
-            btn.disabled = false;
-            btn.innerHTML = 'Print';
-        }).catch(function () {
-            var w = window.open('/api/pdf/print/' + bookId, '_blank');
-            if (!w) {
-                alert('Please allow popups to print the document.');
-            }
-            btn.disabled = false;
-            btn.innerHTML = 'Print';
-        });
-    }
 })();
