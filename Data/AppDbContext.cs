@@ -13,6 +13,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Book> Books => Set<Book>();
     public DbSet<ShopBookAssignment> ShopBookAssignments => Set<ShopBookAssignment>();
     public DbSet<PrintLog> PrintLogs => Set<PrintLog>();
+    public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -30,5 +31,9 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
 
         builder.Entity<PrintLog>()
             .HasIndex(l => l.BookId);
+
+        builder.Entity<SystemSetting>()
+            .HasIndex(s => s.Key)
+            .IsUnique();
     }
 }

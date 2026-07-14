@@ -181,31 +181,51 @@
         });
     }
 
-    function showPrintModal(success, message) {
+    function showPrintModal(success, message, reason) {
         var modalEl = document.getElementById('printResultModal');
         if (!modalEl) return;
 
-        var titleEl = document.getElementById('printModalTitle');
-        var iconEl = document.getElementById('printModalIcon');
-        var msgEl = document.getElementById('printModalMessage');
+        var progress = document.getElementById('printModalStateProgress');
+        var successState = document.getElementById('printModalStateSuccess');
+        var errorState = document.getElementById('printModalStateError');
 
-        if (success) {
-            titleEl.textContent = 'Print Successful';
-            iconEl.className = 'print-modal-icon print-modal-icon-success';
-            iconEl.innerHTML = '<svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>';
-        } else {
-            titleEl.textContent = 'Print Failed';
-            iconEl.className = 'print-modal-icon print-modal-icon-error';
-            iconEl.innerHTML = '<svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>';
+        function show(state) {
+            [progress, successState, errorState].forEach(function (el) {
+                if (el) el.classList.add('d-none');
+            });
+            if (state) state.classList.remove('d-none');
         }
 
-        msgEl.textContent = message;
+        var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
 
-        var modal = new bootstrap.Modal(modalEl);
+        if (success) {
+            show(successState);
+        } else {
+            var reasonEl = document.getElementById('printErrorReason');
+            if (reasonEl) reasonEl.textContent = message || reason || 'Unknown error';
+            show(errorState);
+        }
+
         modal.show();
     }
 
     window.handlePrint = async function (event, bookId) {
+        var modalEl = document.getElementById('printResultModal');
+        if (modalEl) {
+            bootstrap.Modal.getOrCreateInstance(modalEl).show();
+            {
+                var p = document.getElementById('printModalStateProgress');
+                var s = document.getElementById('printModalStateSuccess');
+                var e = document.getElementById('printModalStateError');
+                if (p) p.classList.remove('d-none');
+                if (s) s.classList.add('d-none');
+                if (e) e.classList.add('d-none');
+            }
+        }
+
+        var printBtn = document.getElementById('printBtn');
+        if (printBtn) printBtn.disabled = true;
+
         try {
             var copiesInput = document.getElementById('copiesInput');
             var copies = copiesInput ? parseInt(copiesInput.value, 10) || 1 : 1;
@@ -247,7 +267,17 @@
             }
 
         } catch (error) {
-            showPrintModal(false, error.message);
+            showPrintModal(false, error.message, error.message);
+        } finally {
+            if (printBtn) printBtn.disabled = false;
         }
     };
+
+    var retryBtn = document.getElementById('printRetryBtn');
+    if (retryBtn) {
+        retryBtn.addEventListener('click', function () {
+            var modalEl = document.getElementById('printResultModal');
+            if (modalEl) bootstrap.Modal.getOrCreateInstance(modalEl).hide();
+        });
+    }
 })();

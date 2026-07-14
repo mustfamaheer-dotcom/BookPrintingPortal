@@ -82,18 +82,70 @@ else
     </div>
 
     <!-- Print Result Modal -->
-    <div class="modal fade print-modal" id="printResultModal" tabindex="-1" aria-hidden="true">
+    <div class="modal fade print-modal" id="printResultModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
-                <div class="modal-body print-modal-body">
-                    <div id="printModalIcon" class="print-modal-icon print-modal-icon-success">
-                        <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
-                        </svg>
+                <div class="modal-body print-modal-body" id="printModalBody">
+                    <!-- IN-PROGRESS state -->
+                    <div id="printModalStateProgress" class="print-modal-state">
+                        <div class="print-modal-spinner"></div>
+                        <h4 class="print-modal-title">Book is being printed now</h4>
+                        <p class="print-modal-message">Sending your print job to the local printer agent…<br/>Please wait, this usually takes a few seconds.</p>
+                        <div class="print-job-meta">
+                            <span class="meta-pill"><span class="meta-dot meta-dot-progress"></span>Processing</span>
+                        </div>
                     </div>
-                    <h4 class="print-modal-title" id="printModalTitle">Print Successful</h4>
-                    <p id="printModalMessage" class="print-modal-message">Processing your print job...</p>
-                    <button type="button" class="print-modal-close" data-bs-dismiss="modal">Done</button>
+
+                    <!-- SUCCESS state -->
+                    <div id="printModalStateSuccess" class="print-modal-state d-none">
+                        <div class="print-modal-icon print-modal-icon-success">
+                            <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+                            </svg>
+                        </div>
+                        <h4 class="print-modal-title">Print job sent successfully</h4>
+                        <p class="print-modal-message">
+                            The local printer agent has claimed your job and the book is now being printed on the configured printer.
+                        </p>
+                        <div class="print-job-meta">
+                            <span class="meta-pill"><span class="meta-dot meta-dot-success"></span>Agent picked up</span>
+                            <span class="meta-pill"><span class="meta-dot meta-dot-success"></span>Job removed from queue</span>
+                        </div>
+                        <button type="button" class="print-modal-close print-modal-close-primary" data-bs-dismiss="modal">Done</button>
+                    </div>
+
+                    <!-- ERROR state -->
+                    <div id="printModalStateError" class="print-modal-state d-none">
+                        <div class="print-modal-icon print-modal-icon-error">
+                            <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
+                            </svg>
+                        </div>
+                        <h4 class="print-modal-title">Print could not be started</h4>
+                        <p class="print-modal-message">The server could not start the print job. See the details below.</p>
+                        <div class="print-error-box">
+                            <div class="print-error-row">
+                                <span class="print-error-label">Reason</span>
+                                <span class="print-error-value" id="printErrorReason">Unknown error</span>
+                            </div>
+                        </div>
+                        <div class="print-help-box">
+                            <div class="print-help-title">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                                What to check
+                            </div>
+                            <ul class="print-help-list" id="printHelpList">
+                                <li>Make sure the <strong>local printer agent</strong> is running on your computer.</li>
+                                <li>Confirm you are signed in with the same account that opened the portal.</li>
+                                <li>Check that the printer is online and has paper.</li>
+                                <li>If the problem persists, contact your administrator.</li>
+                            </ul>
+                        </div>
+                        <div class="print-modal-actions">
+                            <button type="button" class="print-modal-close" data-bs-dismiss="modal">Close</button>
+                            <button type="button" class="print-modal-close print-modal-close-primary" id="printRetryBtn">Try again</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

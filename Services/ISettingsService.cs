@@ -1,0 +1,7 @@
+namespace PrintingBooksPortal.Services;
+
+public interface ISettingsService
+{
+    Task<bool> IsWatermarkEnabledAsync();
+    Task SetWatermarkEnabledAsync(bool enabled);
+}

@@ -8,6 +8,16 @@ public class WatermarkService : IWatermarkService
 {
     public byte[] AddHeavyWatermark(byte[] pdfBytes, string shopName, string userName, DateTime timestamp)
     {
+        return ApplyWatermark(pdfBytes, shopName, userName, timestamp, enabled: true);
+    }
+
+    public byte[] ApplyWatermark(byte[] pdfBytes, string shopName, string userName, DateTime timestamp, bool enabled)
+    {
+        if (!enabled)
+        {
+            return pdfBytes;
+        }
+
         using var inputStream = new MemoryStream(pdfBytes);
 
         using var document = PdfReader.Open(inputStream, PdfDocumentOpenMode.Modify);

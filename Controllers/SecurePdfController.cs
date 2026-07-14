@@ -17,6 +17,7 @@ public class SecurePdfController : ControllerBase
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly PrintLoggingService _printLogging;
     private readonly IWatermarkService _watermarkService;
+    private readonly ISettingsService _settingsService;
     private readonly PrintTokenService _printTokenService;
     private readonly IPdfSecurityService _pdfSecurity;
     private readonly IConfiguration _configuration;
@@ -28,6 +29,7 @@ public class SecurePdfController : ControllerBase
         UserManager<ApplicationUser> userManager,
         PrintLoggingService printLogging,
         IWatermarkService watermarkService,
+        ISettingsService settingsService,
         PrintTokenService printTokenService,
         IPdfSecurityService pdfSecurity,
         IConfiguration configuration,
@@ -38,6 +40,7 @@ public class SecurePdfController : ControllerBase
         _userManager = userManager;
         _printLogging = printLogging;
         _watermarkService = watermarkService;
+        _settingsService = settingsService;
         _printTokenService = printTokenService;
         _pdfSecurity = pdfSecurity;
         _configuration = configuration;
@@ -88,8 +91,9 @@ public class SecurePdfController : ControllerBase
         try
         {
             var originalBytes = await System.IO.File.ReadAllBytesAsync(_fileStorage.GetFilePath(book.FilePath));
-            var watermarked = _watermarkService.AddHeavyWatermark(originalBytes, shopName, user.UserName ?? "Unknown", DateTime.UtcNow);
-            return Ok(new { pdfData = Convert.ToBase64String(watermarked) });
+            var watermarkEnabled = await _settingsService.IsWatermarkEnabledAsync();
+            var watermarked = _watermarkService.ApplyWatermark(originalBytes, shopName, user.UserName ?? "Unknown", DateTime.UtcNow, watermarkEnabled);
+            return Ok(new { pdfData = Convert.ToBase64String(watermarked), watermarkEnabled });
         }
         catch (Exception ex)
         {
@@ -134,7 +138,8 @@ public class SecurePdfController : ControllerBase
         try
         {
             var originalBytes = await System.IO.File.ReadAllBytesAsync(filePath);
-            var watermarked = _watermarkService.AddHeavyWatermark(originalBytes, shopName, user.UserName ?? "Unknown", DateTime.UtcNow);
+            var watermarkEnabled = await _settingsService.IsWatermarkEnabledAsync();
+            var watermarked = _watermarkService.ApplyWatermark(originalBytes, shopName, user.UserName ?? "Unknown", DateTime.UtcNow, watermarkEnabled);
             var securedBytes = _pdfSecurity.EncryptPdfWithPassword(watermarked, userPass, ownerPass);
 
             var secureDir = Path.Combine(Directory.GetCurrentDirectory(), "SecurePrints");
@@ -160,6 +165,7 @@ public class SecurePdfController : ControllerBase
             {
                 success = true,
                 jobId,
+                watermarkEnabled,
                 message = $"Print job {jobId} created for {copies} copy(ies)."
             });
         }
@@ -237,7 +243,8 @@ public class SecurePdfController : ControllerBase
         try
         {
             var originalBytes = await System.IO.File.ReadAllBytesAsync(filePath);
-            var watermarked = _watermarkService.AddHeavyWatermark(originalBytes, shopName, userName, DateTime.UtcNow);
+            var watermarkEnabled = await _settingsService.IsWatermarkEnabledAsync();
+            var watermarked = _watermarkService.ApplyWatermark(originalBytes, shopName, userName, DateTime.UtcNow, watermarkEnabled);
             return File(new MemoryStream(watermarked), "application/pdf", enableRangeProcessing: false);
         }
         catch (Exception ex)

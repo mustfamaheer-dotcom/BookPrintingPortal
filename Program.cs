@@ -50,6 +50,7 @@ builder.Services.AddAuthorization(options =>
 builder.Services.AddScoped<FileStorageService>();
 builder.Services.AddScoped<PrintLoggingService>();
 builder.Services.AddScoped<IWatermarkService, WatermarkService>();
+builder.Services.AddScoped<ISettingsService, SettingsService>();
 builder.Services.AddSingleton<PrintTokenService>();
 builder.Services.AddSingleton<IPdfSecurityService, PdfSecurityService>();
 builder.Services.AddHttpContextAccessor();

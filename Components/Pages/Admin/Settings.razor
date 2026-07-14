@@ -1,0 +1,102 @@
+@page "/admin/settings"
+@attribute [Authorize(Roles = "Admin")]
+@rendermode InteractiveServer
+@inject ISettingsService SettingsService
+
+<div class="content-area">
+    <div class="page-header">
+        <div>
+            <h1>System Settings</h1>
+            <p class="page-subtitle">Configure portal-wide behavior</p>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(message))
+    {
+        <div class="alert alert-modern alert-success">@message</div>
+    }
+    @if (!string.IsNullOrEmpty(error))
+    {
+        <div class="alert alert-modern alert-danger">@error</div>
+    }
+
+    <div class="settings-grid">
+        <div class="setting-card">
+            <div class="setting-card-header">
+                <div class="setting-icon setting-icon-@(watermarkEnabled ? "on" : "off")">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 2C9 6 7 9 7 12a5 5 0 0 0 10 0c0-3-2-6-5-10z"/>
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="setting-title">PDF Watermark</h3>
+                    <p class="setting-subtitle">Stamp shop + user identity on every page when admin or shop users view or print a book.</p>
+                </div>
+            </div>
+
+            <div class="setting-card-body">
+                <label class="toggle-row">
+                    <div class="toggle-info">
+                        <span class="toggle-label">@((watermarkEnabled) ? "Watermark is ACTIVE" : "Watermark is DISABLED")</span>
+                        <span class="toggle-hint">@((watermarkEnabled) ? "Every viewed or printed PDF will be stamped with a \"LICENSED TO\" marker." : "PDFs are served without any stamp. Use this when schools are reviewing previews only.")</span>
+                    </div>
+                    <div class="toggle-switch @(watermarkEnabled ? "is-on" : "")">
+                        <input type="checkbox" checked="@watermarkEnabled" @onchange="OnWatermarkChanged" />
+                        <span class="toggle-slider"></span>
+                    </div>
+                </label>
+
+                @if (saving)
+                {
+                    <div class="setting-saving">
+                        <span class="loading-spinner"></span>
+                        Saving…
+                    </div>
+                }
+                else
+                {
+                    <div class="setting-meta">
+                        <span class="meta-label">Last updated</span>
+                        <span class="meta-value">just now</span>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private bool watermarkEnabled = true;
+    private bool saving;
+    private string? message;
+    private string? error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        watermarkEnabled = await SettingsService.IsWatermarkEnabledAsync();
+    }
+
+    private async Task OnWatermarkChanged(ChangeEventArgs e)
+    {
+        var enabled = e.Value is bool b ? b : bool.TryParse(e.Value?.ToString(), out var parsed) && parsed;
+        saving = true;
+        message = null;
+        error = null;
+        try
+        {
+            await SettingsService.SetWatermarkEnabledAsync(enabled);
+            watermarkEnabled = enabled;
+            message = enabled
+                ? "Watermark enabled. All newly viewed/printed PDFs will include the shop stamp."
+                : "Watermark disabled. PDFs will be served without the shop stamp.";
+        }
+        catch (Exception ex)
+        {
+            error = "Failed to save settings: " + ex.Message;
+        }
+        finally
+        {
+            saving = false;
+        }
+    }
+}
