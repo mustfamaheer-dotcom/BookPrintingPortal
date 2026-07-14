@@ -13,48 +13,56 @@
     </div>
 
     <div class="row g-4 mb-4">
-        <div class="col-md-3">
+        <div class="col-md-3 col-6">
             <div class="stat-card stat-card-primary">
-                <div class="stat-icon">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
-                    </svg>
+                <div class="stat-card-inner">
+                    <div class="stat-icon">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-label">Total Prints</div>
+                        <div class="stat-value">@totalPrints</div>
+                    </div>
                 </div>
-                <div class="stat-label">Total Prints</div>
-                <div class="stat-value">@totalPrints</div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-3 col-6">
             <div class="stat-card stat-card-success">
-                <div class="stat-icon">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
-                    </svg>
+                <div class="stat-card-inner">
+                    <div class="stat-icon">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-label">Active Shops</div>
+                        <div class="stat-value">@activeShops</div>
+                    </div>
                 </div>
-                <div class="stat-label">Active Shops</div>
-                <div class="stat-value">@activeShops</div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="stat-card stat-card-info">
-                <div class="stat-icon">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
-                    </svg>
+        <div class="col-md-3 col-6">
+            <div class="stat-card stat-card-purple">
+                <div class="stat-card-inner">
+                    <div class="stat-icon">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-label">Total Books</div>
+                        <div class="stat-value">@totalBooks</div>
+                    </div>
                 </div>
-                <div class="stat-label">Total Books</div>
-                <div class="stat-value">@totalBooks</div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-3 col-6">
             <div class="stat-card stat-card-rose">
-                <div class="stat-icon">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
-                    </svg>
+                <div class="stat-card-inner">
+                    <div class="stat-icon">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                    </div>
+                    <div class="stat-info">
+                        <div class="stat-label">Total Logs</div>
+                        <div class="stat-value">@totalLogs</div>
+                    </div>
                 </div>
-                <div class="stat-label">Total Logs</div>
-                <div class="stat-value">@totalLogs</div>
             </div>
         </div>
     </div>
@@ -62,21 +70,27 @@
     <div class="row g-4 mb-4">
         <div class="col-md-6">
             <div class="content-card">
-                <div class="card-header"><h5>Prints per Shop</h5></div>
+                <div class="card-header d-flex align-items-center justify-content-between">
+                    <h5>Prints per Shop</h5>
+                    <span class="count-badge">@(printsPerShop?.Count ?? 0)</span>
+                </div>
                 <div class="card-body p-0">
                     @if (printsPerShop != null && printsPerShop.Any())
                     {
                         <div class="table-container">
-                            <table class="table">
-                                <thead>
-                                    <tr><th>Shop</th><th>Total Prints</th></tr>
-                                </thead>
+                            <table class="table table-modern">
+                                <thead><tr><th>Shop</th><th class="text-end">Prints</th></tr></thead>
                                 <tbody>
                                     @foreach (var item in printsPerShop.OrderByDescending(x => x.Value))
                                     {
                                         <tr>
-                                            <td>@item.Key</td>
-                                            <td><strong>@item.Value</strong></td>
+                                            <td>
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <div class="bar-mini" style="width: @Math.Min(item.Value * 100 / printsPerShop.Values.Max(), 100)%;"></div>
+                                                    @item.Key
+                                                </div>
+                                            </td>
+                                            <td class="text-end"><strong>@item.Value</strong></td>
                                         </tr>
                                     }
                                 </tbody>
@@ -90,22 +104,29 @@
                 </div>
             </div>
         </div>
-
         <div class="col-md-6">
             <div class="content-card">
-                <div class="card-header"><h5>Prints per Book</h5></div>
+                <div class="card-header d-flex align-items-center justify-content-between">
+                    <h5>Prints per Book</h5>
+                    <span class="count-badge">@(printsPerBook?.Count ?? 0)</span>
+                </div>
                 <div class="card-body p-0">
                     @if (printsPerBook != null && printsPerBook.Any())
                     {
                         <div class="table-container">
-                            <table class="table">
-                                <thead><tr><th>Book</th><th>Total Prints</th></tr></thead>
+                            <table class="table table-modern">
+                                <thead><tr><th>Book</th><th class="text-end">Prints</th></tr></thead>
                                 <tbody>
                                     @foreach (var item in printsPerBook.OrderByDescending(x => x.Value))
                                     {
                                         <tr>
-                                            <td>@item.Key</td>
-                                            <td><strong>@item.Value</strong></td>
+                                            <td>
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <div class="bar-mini bar-purple" style="width: @Math.Min(item.Value * 100 / printsPerBook.Values.Max(), 100)%;"></div>
+                                                    @item.Key
+                                                </div>
+                                            </td>
+                                            <td class="text-end"><strong>@item.Value</strong></td>
                                         </tr>
                                     }
                                 </tbody>
@@ -121,42 +142,67 @@
         </div>
     </div>
 
-    <div class="content-card">
-        <div class="card-header"><h5>Daily Trends (Last 7 Days)</h5></div>
-        <div class="card-body p-0">
-            @if (dailyTrends == null)
-            {
-                <div class="loading-placeholder">Loading...</div>
-            }
-            else if (!dailyTrends.Any())
-            {
-                <div class="empty-state"><p>No data for last 7 days.</p></div>
-            }
-            else
-            {
-                <div class="table-container">
-                    <table class="table">
-                        <thead>
-                            <tr><th>Date</th><th>Prints</th><th>Copies</th></tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var item in dailyTrends)
-                            {
-                                <tr>
-                                    <td>@item.Date.ToString("ddd, MMM dd")</td>
-                                    <td>@item.PrintCount</td>
-                                    <td><strong>@item.TotalCopies</strong></td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
+    <div class="row g-4 mb-4">
+        <div class="col-12">
+            <div class="content-card">
+                <div class="card-header d-flex align-items-center justify-content-between">
+                    <h5>Daily Trends (Last 7 Days)</h5>
+                    @if (dailyTrends != null && dailyTrends.Any())
+                    {
+                        <div class="trend-summary">
+                            <span class="trend-total">@dailyTrends.Sum(d => d.PrintCount) prints</span>
+                            <span class="trend-sep">|</span>
+                            <span class="trend-total">@dailyTrends.Sum(d => d.TotalCopies) copies</span>
+                        </div>
+                    }
                 </div>
-            }
+                <div class="card-body p-0">
+                    @if (dailyTrends == null)
+                    {
+                        <div class="loading-placeholder">Loading...</div>
+                    }
+                    else if (!dailyTrends.Any())
+                    {
+                        <div class="empty-state"><p>No data for last 7 days.</p></div>
+                    }
+                    else
+                    {
+                        <div class="table-container">
+                            <table class="table table-modern">
+                                <thead>
+                                    <tr><th>Date</th><th>Prints</th><th>Copies</th><th>Bar</th></tr>
+                                </thead>
+                                <tbody>
+                                    @{
+                                        var maxCopies = dailyTrends.Max(d => d.TotalCopies);
+                                    }
+                                    @foreach (var item in dailyTrends)
+                                    {
+                                        <tr>
+                                            <td><strong>@item.Date.ToString("ddd, MMM dd")</strong></td>
+                                            <td><span class="count-badge">@item.PrintCount</span></td>
+                                            <td><strong>@item.TotalCopies</strong></td>
+                                            <td style="width: 200px;">
+                                                <div class="trend-bar-track">
+                                                    <div class="trend-bar-fill" style="width: @(maxCopies > 0 ? item.TotalCopies * 100 / maxCopies : 0)%;"></div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
         </div>
     </div>
 
     <div class="content-card">
-        <div class="card-header"><h5>Recent Print Logs</h5></div>
+        <div class="card-header d-flex align-items-center justify-content-between">
+            <h5>Recent Print Logs</h5>
+            <span class="count-badge">@(recentLogs?.Count ?? 0) entries</span>
+        </div>
         <div class="card-body p-0">
             @if (recentLogs == null)
             {
@@ -169,7 +215,7 @@
             else
             {
                 <div class="table-container" style="max-height: 400px; overflow-y: auto;">
-                    <table class="table">
+                    <table class="table table-modern">
                         <thead>
                             <tr>
                                 <th>Date/Time</th>
@@ -184,12 +230,12 @@
                             @foreach (var log in recentLogs)
                             {
                                 <tr>
-                                    <td>@log.PrintedAt.ToLocalTime().ToString("g")</td>
+                                    <td class="text-muted">@log.PrintedAt.ToLocalTime().ToString("g")</td>
                                     <td>@log.ShopName</td>
                                     <td>@log.BookTitle</td>
                                     <td><strong>@log.Copies</strong></td>
                                     <td>@log.PrintedByUserName</td>
-                                    <td><code>@log.IPAddress</code></td>
+                                    <td><code class="ip-badge">@log.IPAddress</code></td>
                                 </tr>
                             }
                         </tbody>

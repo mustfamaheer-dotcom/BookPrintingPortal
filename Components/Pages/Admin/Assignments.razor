@@ -14,38 +14,50 @@
 
     @if (!string.IsNullOrEmpty(message))
     {
-        <div class="alert alert-success alert-dismissible fade show d-flex align-items-center gap-2" role="alert">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-            <span>@message</span>
-            <button type="button" class="btn-close ms-auto" @onclick="() => message = null"></button>
-        </div>
+        <div class="alert alert-modern alert-success">@message</div>
     }
 
-    <div class="row g-4">
-        @if (shops != null)
-        {
+    @if (shops == null || books == null)
+    {
+        <div class="loading-placeholder">Loading...</div>
+    }
+    else
+    {
+        <div class="row g-4">
             @foreach (var shop in shops.Where(s => s.IsActive))
             {
-                <div class="col-md-6">
-                    <div class="content-card">
-                        <div class="card-header">
-                            <h5 class="mb-0">@shop.Name</h5>
+                <div class="col-xl-6">
+                    <div class="assign-card">
+                        <div class="assign-card-header">
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="assign-shop-icon">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                                </div>
+                                <h5 class="mb-0">@shop.Name</h5>
+                            </div>
+                            <span class="assign-count">@GetAssignedCount(shop.Id) / @books.Count(b => b.IsActive) books</span>
                         </div>
-                        <div class="card-body">
-                            @if (books != null)
+                        <div class="assign-card-body">
+                            @if (!books.Any(b => b.IsActive))
                             {
-                                @foreach (var book in books.Where(b => b.IsActive))
+                                <p class="text-muted mb-0">No active books available.</p>
+                            }
+                            else
+                            {
+                                @foreach (var book in books.Where(b => b.IsActive).OrderBy(b => b.Title))
                                 {
                                     var isAssigned = assignedBooks.ContainsKey($"{shop.Id}-{book.Id}");
-                                    <div class="form-check mb-2">
-                                        <input type="checkbox" class="form-check-input"
-                                               id="assign-@shop.Id-@book.Id"
-                                               checked="@isAssigned"
-                                               @onchange="e => ToggleAssignment(shop.Id, book.Id, (bool)(e.Value ?? false))" />
-                                        <label class="form-check-label" for="assign-@shop.Id-@book.Id">
-                                            <strong>@book.Title</strong>
-                                            <small class="text-muted"> (@book.Board?.Name)</small>
-                                        </label>
+                                    <div class="assign-row @(isAssigned ? "assigned" : "")" @onclick="() => ToggleAssignment(shop.Id, book.Id, !isAssigned)">
+                                        <div class="assign-check">
+                                            <div class="toggle-switch @(isAssigned ? "on" : "off")">
+                                                <div class="toggle-knob"></div>
+                                            </div>
+                                        </div>
+                                        <div class="assign-info">
+                                            <span class="assign-book-title">@book.Title</span>
+                                            <span class="assign-book-board">@book.Board?.Name</span>
+                                        </div>
+                                        <span class="assign-pages">@book.PageCount pgs</span>
                                     </div>
                                 }
                             }
@@ -53,8 +65,8 @@
                     </div>
                 </div>
             }
-        }
-    </div>
+        </div>
+    }
 </div>
 
 @code {
@@ -79,6 +91,15 @@
             assignedBooks[$"{a.ShopId}-{a.BookId}"] = true;
     }
 
+    private int GetAssignedCount(int shopId)
+    {
+        return assignedBooks.Count(kv =>
+        {
+            var parts = kv.Key.Split('-');
+            return parts.Length == 2 && int.Parse(parts[0]) == shopId && kv.Value;
+        });
+    }
+
     private async Task ToggleAssignment(int shopId, int bookId, bool assigned)
     {
         var existing = await Db.ShopBookAssignments
@@ -99,6 +120,6 @@
 
         await Db.SaveChangesAsync();
         assignedBooks[$"{shopId}-{bookId}"] = assigned;
-        message = "Assignment updated.";
+        message = assigned ? "Book assigned." : "Book unassigned.";
     }
 }

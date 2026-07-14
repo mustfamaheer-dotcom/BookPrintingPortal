@@ -11,64 +11,88 @@
             <h1>Bookshops</h1>
             <p class="page-subtitle">Manage bookshops and their user accounts</p>
         </div>
+        <div class="page-header-actions">
+            <button class="btn btn-primary" @onclick="() => { editing = false; editModel = new(); error = null; showModal = true; }">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Add Shop
+            </button>
+        </div>
     </div>
 
     @if (!string.IsNullOrEmpty(message))
     {
-        <div class="alert alert-success alert-dismissible fade show d-flex align-items-center gap-2" role="alert">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-            <span>@message</span>
-            <button type="button" class="btn-close ms-auto" @onclick="() => message = null"></button>
-        </div>
+        <div class="alert alert-modern alert-success">@message</div>
     }
     @if (!string.IsNullOrEmpty(error))
     {
-        <div class="alert alert-danger">@error</div>
+        <div class="alert alert-modern alert-danger">@error</div>
     }
 
-    <div class="content-card mb-4">
-        <div class="card-header">
-            <h5>@(editing ? "Edit Bookshop" : "Add New Bookshop")</h5>
-        </div>
-        <div class="card-body">
-            <EditForm Model="@editModel" OnValidSubmit="@SaveShop">
-                <DataAnnotationsValidator />
-                <div class="row g-3">
-                    <div class="col-md-6">
+    @* Shop Modal *@
+    <div class="modal-overlay @(showModal ? "show" : "")" @onclick="() => showModal = false">
+        <div class="modal-container" @onclick:stopPropagation>
+            <div class="modal-header">
+                <h5 class="modal-title">@(editing ? "Edit Bookshop" : "Add New Bookshop")</h5>
+                <button type="button" class="modal-close" @onclick="() => showModal = false">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <EditForm Model="@editModel" OnValidSubmit="@SaveShop">
+                    <DataAnnotationsValidator />
+                    <div class="mb-3">
                         <label class="form-label">Shop Name</label>
-                        <InputText @bind-Value="editModel.Name" class="form-control" placeholder="Enter shop name" required />
+                        <InputText @bind-Value="editModel.Name" class="form-control form-control-modern" placeholder="Enter shop name" required />
                     </div>
-                    <div class="col-md-6">
-                        <label class="form-label">Phone</label>
-                        <InputText @bind-Value="editModel.Phone" class="form-control" placeholder="Phone number" />
-                    </div>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Address</label>
-                    <InputText @bind-Value="editModel.Address" class="form-control" placeholder="Shop address" />
-                </div>
-                @if (!editing)
-                {
-                    <div class="row g-3">
+                    <div class="row g-3 mb-3">
                         <div class="col-md-6">
-                            <label class="form-label">Login Email</label>
-                            <InputText @bind-Value="editModel.Email" type="email" class="form-control" placeholder="Email for login" required />
+                            <label class="form-label">Phone</label>
+                            <InputText @bind-Value="editModel.Phone" class="form-control form-control-modern" placeholder="Phone number" />
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Login Password</label>
-                            <InputText @bind-Value="editModel.Password" type="password" class="form-control" placeholder="Password for login" required />
+                            <label class="form-label">Address</label>
+                            <InputText @bind-Value="editModel.Address" class="form-control form-control-modern" placeholder="Shop address" />
                         </div>
                     </div>
-                    <small class="text-muted mt-1 d-block">A user account will be created for this shop with these credentials.</small>
-                }
-                <div class="mt-3">
-                    <button type="submit" class="btn btn-primary">@(editing ? "Update Shop" : "Create Shop")</button>
-                    @if (editing)
+                    @if (!editing)
                     {
-                        <button type="button" class="btn btn-outline-secondary ms-2" @onclick="CancelEdit">Cancel</button>
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Login Email</label>
+                                <InputText @bind-Value="editModel.Email" type="email" class="form-control form-control-modern" placeholder="Email for login" required />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Login Password</label>
+                                <InputText @bind-Value="editModel.Password" type="password" class="form-control form-control-modern" placeholder="Password" required />
+                            </div>
+                        </div>
+                        <div class="alert alert-info py-2 px-3 mb-3">
+                            <small>A user account will be created for this shop with these credentials.</small>
+                        </div>
                     }
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-outline-secondary" @onclick="() => showModal = false">Cancel</button>
+                        <button type="submit" class="btn btn-primary">@(editing ? "Update Shop" : "Create Shop")</button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+
+    @* Delete Confirmation *@
+    <div class="modal-overlay @(showDeleteModal ? "show" : "")" @onclick="() => showDeleteModal = false">
+        <div class="modal-container modal-sm" @onclick:stopPropagation>
+            <div class="modal-body text-center py-4">
+                <div class="delete-icon mb-3">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="1.5"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                 </div>
-            </EditForm>
+                <h5 class="mb-2">Delete Shop</h5>
+                <p class="text-muted mb-3">This will also delete all associated user accounts. Are you sure?</p>
+                <div class="modal-actions justify-content-center">
+                    <button class="btn btn-outline-secondary" @onclick="() => showDeleteModal = false">Cancel</button>
+                    <button class="btn btn-danger" @onclick="ConfirmDelete">Delete</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -81,36 +105,57 @@
             else
             {
                 <div class="table-container">
-                    <table class="table">
+                    <table class="table table-modern">
                         <thead>
                             <tr>
-                                <th>ID</th>
                                 <th>Name</th>
                                 <th>Address</th>
                                 <th>Phone</th>
                                 <th>Status</th>
                                 <th>Created</th>
-                                <th>Actions</th>
+                                <th class="text-end">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             @foreach (var shop in shops)
                             {
                                 <tr>
-                                    <td>@shop.Id</td>
-                                    <td><strong>@shop.Name</strong></td>
-                                    <td>@shop.Address</td>
+                                    <td>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <div class="shop-icon">
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                                            </div>
+                                            <strong>@shop.Name</strong>
+                                        </div>
+                                    </td>
+                                    <td class="text-muted">@shop.Address</td>
                                     <td>@shop.Phone</td>
                                     <td>
-                                        <span class="badge @(shop.IsActive ? "bg-success" : "bg-secondary")">
+                                        <span class="status-badge @(shop.IsActive ? "status-active" : "status-inactive")">
+                                            <span class="status-dot"></span>
                                             @(shop.IsActive ? "Active" : "Inactive")
                                         </span>
                                     </td>
-                                    <td>@shop.CreatedAt.ToLocalTime().ToString("d")</td>
-                                    <td>
-                                        <button class="btn btn-sm btn-outline-primary me-1" @onclick="() => EditShop(shop)">Edit</button>
-                                        <button class="btn btn-sm btn-outline-warning me-1" @onclick="() => ToggleShop(shop)">@(shop.IsActive ? "Deactivate" : "Activate")</button>
-                                        <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteShop(shop)">Delete</button>
+                                    <td class="text-muted">@shop.CreatedAt.ToLocalTime().ToString("d")</td>
+                                    <td class="text-end">
+                                        <div class="action-btns">
+                                            <button class="btn-icon btn-icon-edit" title="Edit" @onclick="() => { EditShop(shop); showModal = true; }">
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                            </button>
+                                            <button class="btn-icon btn-icon-toggle" title="@(shop.IsActive ? "Deactivate" : "Activate")" @onclick="() => ToggleShop(shop)">
+                                                @if (shop.IsActive)
+                                                {
+                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+                                                }
+                                                else
+                                                {
+                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                                }
+                                            </button>
+                                            <button class="btn-icon btn-icon-danger" title="Delete" @onclick="() => { deletingShop = shop; showDeleteModal = true; }">
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             }
@@ -127,6 +172,9 @@
     private ShopEditModel editModel = new();
     private bool editing;
     private int editingId;
+    private bool showModal;
+    private bool showDeleteModal;
+    private Shop? deletingShop;
     private string? message;
     private string? error;
 
@@ -147,13 +195,6 @@
         editModel.Name = shop.Name;
         editModel.Address = shop.Address;
         editModel.Phone = shop.Phone;
-    }
-
-    private void CancelEdit()
-    {
-        editing = false;
-        editingId = 0;
-        editModel = new();
         error = null;
     }
 
@@ -222,7 +263,9 @@
 
         await Db.SaveChangesAsync();
         await LoadShops();
-        CancelEdit();
+        showModal = false;
+        editModel = new();
+        editing = false;
     }
 
     private async Task ToggleShop(Shop shop)
@@ -232,16 +275,19 @@
         await LoadShops();
     }
 
-    private async Task DeleteShop(Shop shop)
+    private async Task ConfirmDelete()
     {
-        var users = await UserManager.Users.Where(u => u.ShopId == shop.Id).ToListAsync();
+        if (deletingShop == null) return;
+        var users = await UserManager.Users.Where(u => u.ShopId == deletingShop.Id).ToListAsync();
         foreach (var user in users)
             await UserManager.DeleteAsync(user);
 
-        Db.Shops.Remove(shop);
+        Db.Shops.Remove(deletingShop);
         await Db.SaveChangesAsync();
         await LoadShops();
         message = "Shop deleted.";
+        showDeleteModal = false;
+        deletingShop = null;
     }
 
     private class ShopEditModel

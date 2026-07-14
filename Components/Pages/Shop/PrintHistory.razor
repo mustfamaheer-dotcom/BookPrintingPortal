@@ -11,6 +11,14 @@
             <h1>My Print History</h1>
             <p class="page-subtitle">View your shop's printing activity</p>
         </div>
+        @if (logs != null && logs.Any())
+        {
+            <div class="page-header-actions">
+                <div class="summary-chip">
+                    <span>Total: <strong>@logs.Sum(l => l.Copies)</strong> copies</span>
+                </div>
+            </div>
+        }
     </div>
 
     @if (logs == null)
@@ -19,20 +27,26 @@
     }
     else if (!logs.Any())
     {
-        <div class="alert alert-info">No print activity yet.</div>
+        <div class="empty-state py-5">
+            <div class="empty-icon mb-3">
+                <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="var(--gray-300)" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </div>
+            <h5 class="text-muted">No Print Activity</h5>
+            <p>Your shop hasn't printed any books yet.</p>
+        </div>
     }
     else
     {
         <div class="content-card">
             <div class="card-body p-0">
                 <div class="table-container">
-                    <table class="table">
+                    <table class="table table-modern">
                         <thead>
                             <tr>
                                 <th>Date/Time</th>
                                 <th>Book</th>
                                 <th>Copies</th>
-                                <th>User</th>
+                                <th>Printed By</th>
                                 <th>IP</th>
                             </tr>
                         </thead>
@@ -40,18 +54,15 @@
                             @foreach (var log in logs)
                             {
                                 <tr>
-                                    <td>@log.PrintedAt.ToLocalTime().ToString("g")</td>
+                                    <td class="text-muted">@log.PrintedAt.ToLocalTime().ToString("g")</td>
                                     <td><strong>@log.BookTitle</strong></td>
-                                    <td><strong>@log.Copies</strong></td>
+                                    <td><span class="count-badge">@log.Copies</span></td>
                                     <td>@log.PrintedByUserName</td>
-                                    <td><code>@log.IPAddress</code></td>
+                                    <td><code class="ip-badge">@log.IPAddress</code></td>
                                 </tr>
                             }
                         </tbody>
                     </table>
-                </div>
-                <div class="card-footer bg-transparent">
-                    <p class="text-muted mb-0">Total prints: <strong>@logs.Sum(l => l.Copies)</strong></p>
                 </div>
             </div>
         </div>
