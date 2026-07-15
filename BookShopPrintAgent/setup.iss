@@ -38,25 +38,17 @@ Filename: "{app}\BookShopPortalUI.exe"; Flags: nowait runhidden; Description: "S
 Filename: "schtasks"; Parameters: "/delete /tn ""BookShopPrintAgent"" /f"; Flags: runhidden; RunOnceId: "RemoveScheduledTask"
 
 [Code]
-function CheckNet: Boolean;
+procedure KillProcess(ExeName: string);
 var
-  v: String;
+  ResultCode: Integer;
 begin
-  Result := RegQueryStringValue(HKLM64,
-    'SOFTWARE\dotnet\Setup\InstalledVersions\x64\sharedfx\Microsoft.NETCore.App\10.0.0',
-    'Version', v);
-  if not Result then
-    Result := RegQueryStringValue(HKLM64,
-    'SOFTWARE\dotnet\Setup\InstalledVersions\x64\sharedfx\Microsoft.WindowsDesktop.App\10.0.0',
-    'Version', v);
+  Exec(ExpandConstant('{cmd}'), '/c taskkill /f /im ' + ExeName + ' 2>nul', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
 end;
 
 function InitializeSetup: Boolean;
 begin
-  Result := CheckNet;
-  if not Result then
-  begin
-    MsgBox('This app requires .NET Desktop Runtime 10.0 (x64).'#13#10#13#10'Please download from:'#13#10'https://dotnet.microsoft.com/en-us/download/dotnet/10.0', mbInformation, MB_OK);
-    Result := False;
-  end;
+  Result := True;
+  KillProcess('BookShopPrintAgent.exe');
+  KillProcess('BookShopPortalUI.exe');
+  KillProcess('SumatraPDF-3.6.1-64.exe');
 end;
