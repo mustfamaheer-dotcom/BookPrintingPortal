@@ -12,7 +12,12 @@ public class FileStorageService
 
     public async Task<string> SaveFileAsync(IFormFile file)
     {
-        var fileName = $"{Guid.NewGuid():N}{Path.GetExtension(file.FileName)}";
+        // Security: only allow PDF uploads to prevent arbitrary file upload attacks
+        var ext = Path.GetExtension(file.FileName)?.ToLowerInvariant();
+        if (ext != ".pdf")
+            throw new InvalidOperationException("Invalid file type. Only PDFs are allowed.");
+
+        var fileName = $"{Guid.NewGuid():N}{ext}";
         var filePath = Path.Combine(_storagePath, fileName);
 
         await using var stream = new FileStream(filePath, FileMode.Create);

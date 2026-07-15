@@ -1,3 +1,5 @@
+﻿using System.ComponentModel.DataAnnotations;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -67,6 +69,29 @@ public class SecurePdfController : ControllerBase
         return hasAccess ? (book, user) : (null, null);
     }
 
+    private async Task<bool> IsJobOwnerAsync(string jobId, System.Security.Claims.ClaimsPrincipal user)
+    {
+        if (PendingPrintJobs.Jobs.TryGetValue(jobId, out var info))
+        {
+            var appUser = await _userManager.GetUserAsync(user);
+            if (appUser == null) return false;
+
+            var isAdmin = await _userManager.IsInRoleAsync(appUser, "Admin");
+            // Admin can access any job; Shop can only access their own jobs
+            return isAdmin || info.ShopId == appUser.ShopId;
+        }
+        return false;
+    }
+
+    private bool IsValidAgentApiKey()
+    {
+        var configuredKey = _configuration.GetValue<string>("AgentSettings:ApiKey");
+        if (string.IsNullOrEmpty(configuredKey))
+            return false;
+        var providedKey = HttpContext.Request.Headers["X-Api-Key"].FirstOrDefault();
+        return string.Equals(providedKey, configuredKey, StringComparison.Ordinal);
+    }
+
     private async Task<byte[]?> GetOriginalPdfBytes(int bookId)
     {
         var filePath = _fileStorage.GetFilePath((await _db.Books.FindAsync(bookId))?.FilePath ?? "");
@@ -131,7 +156,10 @@ public class SecurePdfController : ControllerBase
 
         var jobId = Guid.NewGuid().ToString("N");
         var userPass = $"PRINT-{jobId}";
-        var ownerPass = _configuration.GetValue<string>("OwnerPassword") ?? $"ADMIN-{jobId}";
+        // Security: read OwnerPassword from config or env var; fail if unset in production
+        var ownerPass = _configuration.GetValue<string>("OwnerPassword__KeyVaultOrEnvVar")
+            ?? Environment.GetEnvironmentVariable("OWNER_PASSWORD")
+            ?? throw new InvalidOperationException("OwnerPassword is not configured. Set OwnerPassword__KeyVaultOrEnvVar in config or OWNER_PASSWORD environment variable.");
 
         _logger.LogInformation("ProcessPrint: Job={JobId}, Book={BookId}, Shop={ShopId}, Copies={Copies}",
             jobId, request.BookId, user.ShopId, copies);
@@ -161,7 +189,13 @@ public class SecurePdfController : ControllerBase
             _logger.LogInformation("Print logged: Job={JobId}, Shop={ShopId}, Book={BookId}, Copies={Copies}, IP={IP}",
                 jobId, user.ShopId, request.BookId, copies, ipAddress);
 
-            PendingPrintJobs.Jobs.TryAdd(jobId, new PendingJobInfo { Copies = copies, CreatedAt = DateTime.UtcNow });
+            // Track ownership so only the creating shop (or Admin) can download/print the secured file
+            PendingPrintJobs.Jobs.TryAdd(jobId, new PendingJobInfo
+            {
+                ShopId = user.ShopId.Value,
+                Copies = copies,
+                CreatedAt = DateTime.UtcNow
+            });
 
             return Ok(new
             {
@@ -174,13 +208,22 @@ public class SecurePdfController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "ProcessPrint failed for book {BookId}", request.BookId);
-            return StatusCode(500, new { success = false, error = $"Failed to process print job: {ex.Message}" });
+            // Security: never expose internal exception details to the client
+            return StatusCode(500, new { success = false, error = "Failed to process print job." });
         }
     }
 
     [HttpGet("print-file/{jobId}")]
-    public IActionResult GetPrintFile(string jobId)
+    [Authorize(Roles = "Shop,Admin")]
+    public async Task<IActionResult> GetPrintFile(string jobId)
     {
+        if (!Guid.TryParse(jobId, out _))
+            return BadRequest(new { error = "Invalid job ID format." });
+
+        // Verify the job belongs to the current user's shop (or user is Admin)
+        if (!await IsJobOwnerAsync(jobId, User))
+            return Forbid();
+
         var securePath = Path.Combine(Directory.GetCurrentDirectory(), "SecurePrints", $"{jobId}.pdf");
         if (!System.IO.File.Exists(securePath))
             return NotFound("Print job not found or expired.");
@@ -192,8 +235,23 @@ public class SecurePdfController : ControllerBase
     }
 
     [HttpGet("download-secured/{jobId}")]
-    public IActionResult DownloadSecured(string jobId)
+    [AllowAnonymous]
+    public async Task<IActionResult> DownloadSecured(string jobId)
     {
+        if (!Guid.TryParse(jobId, out _))
+            return BadRequest(new { error = "Invalid job ID format." });
+
+        var isAgent = IsValidAgentApiKey();
+
+        if (!isAgent)
+        {
+            if (!(User.Identity?.IsAuthenticated == true))
+                return Unauthorized();
+
+            if (!await IsJobOwnerAsync(jobId, User))
+                return Forbid();
+        }
+
         var securePath = Path.Combine(Directory.GetCurrentDirectory(), "SecurePrints", $"{jobId}.pdf");
         if (!System.IO.File.Exists(securePath))
             return NotFound("Print job not found or expired.");
@@ -252,9 +310,9 @@ public class SecurePdfController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Watermarking failed for book {BookId}, serving original PDF", bookId);
-            var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read);
-            return File(stream, "application/pdf", enableRangeProcessing: false);
+            // Security: fail CLOSED â€” never expose the unwatermarked file
+            _logger.LogError(ex, "Watermarking failed for book {BookId}", bookId);
+            return StatusCode(500, new { error = "Failed to process secure document." });
         }
     }
 
@@ -274,8 +332,12 @@ public class SecurePdfController : ControllerBase
     }
 
     [HttpGet("print-agent/pending")]
+    [AllowAnonymous]
     public IActionResult GetPendingJobs()
     {
+        if (!(User.Identity?.IsAuthenticated == true) && !IsValidAgentApiKey())
+            return Unauthorized(new { error = "Authentication required." });
+
         var cutoff = DateTime.UtcNow.Add(-PendingPrintJobs.Expiry);
         var expired = PendingPrintJobs.Jobs.Where(kv => kv.Value.CreatedAt < cutoff).Select(kv => kv.Key).ToList();
         foreach (var key in expired)
@@ -286,8 +348,12 @@ public class SecurePdfController : ControllerBase
     }
 
     [HttpPost("print-agent/claim/{jobId}")]
+    [AllowAnonymous]
     public IActionResult ClaimJob(string jobId)
     {
+        if (!IsValidAgentApiKey())
+            return Unauthorized(new { error = "Valid API key required." });
+
         if (PendingPrintJobs.Jobs.TryRemove(jobId, out var info))
             return Ok(new { success = true, jobId, copies = info.Copies });
         return NotFound(new { success = false, error = "Job not found or already claimed." });
@@ -297,11 +363,14 @@ public class SecurePdfController : ControllerBase
 public class ProcessPrintRequest
 {
     public int BookId { get; set; }
+
+    [Range(1, 50, ErrorMessage = "Copies must be between 1 and 50.")]
     public int Copies { get; set; } = 1;
 }
 
 public class PendingJobInfo
 {
+    public int ShopId { get; set; }
     public int Copies { get; set; }
     public DateTime CreatedAt { get; set; }
 }

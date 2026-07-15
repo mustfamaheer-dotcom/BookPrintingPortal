@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using PrintingBooksPortal.Components;
@@ -35,8 +36,9 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.LogoutPath = "/logout";
     options.AccessDeniedPath = "/access-denied";
     options.Cookie.HttpOnly = true;
-    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
-    options.Cookie.SameSite = SameSiteMode.Lax;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;     // Security: HTTPS-only cookies
+    options.Cookie.SameSite = SameSiteMode.Strict;                // Security: prevent CSRF
+    options.Cookie.IsEssential = true;                            // Security: GDPR-compliant auth
     options.ExpireTimeSpan = TimeSpan.FromHours(8);
     options.SlidingExpiration = true;
 });
@@ -64,15 +66,24 @@ builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.
 
 var app = builder.Build();
 
+// Security: trust X-Forwarded-Proto/X-Forwarded-Host from the reverse proxy (RunASP.NET load balancer)
+// so that UseHttpsRedirection() and CookieSecurePolicy.Always work correctly behind SSL termination.
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost | ForwardedHeaders.XForwardedFor
+});
+
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
+    app.UseHsts();   // Security: HTTP Strict-Transport-Security header
 }
 else
 {
     app.UseDeveloperExceptionPage();
 }
 
+app.UseHttpsRedirection();  // Security: redirect HTTP → HTTPS
 app.UseStaticFiles();
 app.UseRouting();
 app.UseAuthentication();

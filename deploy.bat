@@ -10,7 +10,12 @@ REM silently falls back to a folder publish and never contacts the server.
 REM Using the named PublishProfile (MonsterASP.pubxml) is what actually
 REM loads the MSDeploy/WMSVC targets and pushes files to RunASP.NET.
 echo 📦 Building and deploying application...
-dotnet publish -c Release -p:PublishProfile=MonsterASP -p:Password=Q#r8_q3D6Nj%%
+if "%DEPLOY_PASSWORD%"=="" (
+    echo ❌ ERROR: DEPLOY_PASSWORD environment variable is not set!
+    pause
+    exit /b 1
+)
+dotnet publish -c Release -p:PublishProfile=MonsterASP -p:Password=%DEPLOY_PASSWORD%
 
 if %errorlevel% equ 0 (
     echo.

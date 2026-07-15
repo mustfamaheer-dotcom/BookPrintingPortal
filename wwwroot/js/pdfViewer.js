@@ -7,9 +7,8 @@
 
     document.addEventListener('keydown', function (e) {
         var ctrl = e.ctrlKey || e.metaKey;
-        var key = e.key.toLowerCase();
-        if (ctrl && key === 's') { e.preventDefault(); e.stopPropagation(); return; }
-        if (ctrl && key === 'p') { e.preventDefault(); e.stopPropagation(); return; }
+        var key = (e.key || '').toLowerCase();
+        if (ctrl && (key === 's' || key === 'p')) { e.preventDefault(); e.stopPropagation(); return; }
     }, true);
 
     document.addEventListener('dragstart', function (e) {

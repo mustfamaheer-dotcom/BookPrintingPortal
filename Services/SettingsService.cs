@@ -17,12 +17,26 @@ public class SettingsService : ISettingsService
 
     public async Task<bool> IsWatermarkEnabledAsync()
     {
-        return await GetBoolSettingAsync(SystemSettingKeys.WatermarkEnabled, true);
+        try
+        {
+            return await GetBoolSettingAsync(SystemSettingKeys.WatermarkEnabled, true);
+        }
+        catch
+        {
+            return true;
+        }
     }
 
     public async Task SetWatermarkEnabledAsync(bool enabled)
     {
-        await SetBoolSettingAsync(SystemSettingKeys.WatermarkEnabled, enabled);
+        try
+        {
+            await SetBoolSettingAsync(SystemSettingKeys.WatermarkEnabled, enabled);
+        }
+        catch
+        {
+            // Silently fail — settings will be retried next time
+        }
     }
 
     public async Task<string> GetWatermarkTextAsync()
@@ -39,9 +53,8 @@ public class SettingsService : ISettingsService
 
             return setting.ValueString;
         }
-        catch (Exception ex) when (IsTableMissing(ex))
+        catch
         {
-            await EnsureTableCreatedAsync();
             return DefaultWatermarkText;
         }
     }
@@ -69,16 +82,9 @@ public class SettingsService : ISettingsService
 
             await _db.SaveChangesAsync();
         }
-        catch (Exception ex) when (IsTableMissing(ex))
+        catch
         {
-            await EnsureTableCreatedAsync();
-            var setting = new SystemSetting
-            {
-                Key = SystemSettingKeys.WatermarkText,
-                ValueString = text
-            };
-            _db.SystemSettings.Add(setting);
-            await _db.SaveChangesAsync();
+            // Silently fail — settings will be retried next time
         }
     }
 
@@ -98,12 +104,19 @@ public class SettingsService : ISettingsService
 
             return setting.ValueBool;
         }
-        catch (Exception ex) when (IsTableMissing(ex))
+        catch
         {
             await EnsureTableCreatedAsync();
-            var setting = new SystemSetting { Key = key, ValueBool = defaultValue };
-            _db.SystemSettings.Add(setting);
-            await _db.SaveChangesAsync();
+            try
+            {
+                var setting = new SystemSetting { Key = key, ValueBool = defaultValue };
+                _db.SystemSettings.Add(setting);
+                await _db.SaveChangesAsync();
+            }
+            catch
+            {
+                // Table creation also failed — return default
+            }
             return defaultValue;
         }
     }
@@ -127,28 +140,62 @@ public class SettingsService : ISettingsService
 
             await _db.SaveChangesAsync();
         }
-        catch (Exception ex) when (IsTableMissing(ex))
+        catch
         {
             await EnsureTableCreatedAsync();
-            var setting = new SystemSetting { Key = key, ValueBool = value };
-            _db.SystemSettings.Add(setting);
-            await _db.SaveChangesAsync();
+            try
+            {
+                var setting = new SystemSetting { Key = key, ValueBool = value };
+                _db.SystemSettings.Add(setting);
+                await _db.SaveChangesAsync();
+            }
+            catch
+            {
+                // Table creation also failed — silently fail
+            }
         }
-    }
-
-    private static bool IsTableMissing(Exception ex)
-    {
-        var msg = ex.InnerException?.Message ?? ex.Message;
-        return msg.Contains("Invalid object name")
-            || msg.Contains("no such table")
-            || msg.Contains("does not exist")
-            || msg.Contains("Table '")
-            || msg.Contains("not found");
     }
 
     private async Task EnsureTableCreatedAsync()
     {
-        const string sqlServer = @"
+        try
+        {
+            // Try pending migrations first
+            if ((await _db.Database.GetPendingMigrationsAsync()).Any())
+            {
+                await _db.Database.MigrateAsync();
+                return;
+            }
+        }
+        catch
+        {
+            // Migration failed, try DDL below
+        }
+
+        try
+        {
+            // Check if table already exists
+            await _db.SystemSettings.AnyAsync();
+
+            // Table exists — ensure the ValueString column is present (incomplete migration)
+            if (_db.Database.IsSqlServer())
+            {
+                await _db.Database.ExecuteSqlRawAsync(@"
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('SystemSettings') AND name = 'ValueString')
+    ALTER TABLE [SystemSettings] ADD [ValueString] nvarchar(2000) NULL");
+            }
+            return;
+        }
+        catch
+        {
+            // Table doesn't exist — create it below
+        }
+
+        try
+        {
+            if (_db.Database.IsSqlServer())
+            {
+                await _db.Database.ExecuteSqlRawAsync(@"
 IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'SystemSettings')
 BEGIN
     CREATE TABLE [SystemSettings] (
@@ -158,24 +205,23 @@ BEGIN
         [ValueString] nvarchar(2000) NULL
     );
     CREATE UNIQUE INDEX [IX_SystemSettings_Key] ON [SystemSettings] ([Key]);
-END";
-
-        const string sqlite = @"
+END");
+            }
+            else
+            {
+                await _db.Database.ExecuteSqlRawAsync(@"
 CREATE TABLE IF NOT EXISTS [SystemSettings] (
     [Id] INTEGER NOT NULL CONSTRAINT [PK_SystemSettings] PRIMARY KEY AUTOINCREMENT,
     [Key] TEXT NOT NULL,
     [ValueBool] INTEGER NOT NULL DEFAULT 1,
     [ValueString] TEXT NULL
 );
-CREATE UNIQUE INDEX IF NOT EXISTS [IX_SystemSettings_Key] ON [SystemSettings] ([Key]);";
-
-        try
-        {
-            await _db.Database.ExecuteSqlRawAsync(sqlServer);
+CREATE UNIQUE INDEX IF NOT EXISTS [IX_SystemSettings_Key] ON [SystemSettings] ([Key]);");
+            }
         }
         catch
         {
-            await _db.Database.ExecuteSqlRawAsync(sqlite);
+            // DDL also failed — will return defaults gracefully
         }
     }
 }

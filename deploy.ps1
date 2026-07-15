@@ -21,7 +21,8 @@ if ($LASTEXITCODE -ne 0) {
 
 # Step 3: Publish the application
 Write-Host "Step 3: Publishing application..." -ForegroundColor Blue
-dotnet publish --configuration Release --output "./publish" --no-build
+Remove-Item -Recurse -Force "./publish" -ErrorAction SilentlyContinue
+dotnet publish --configuration Release --output "./publish"
 
 if ($LASTEXITCODE -ne 0) {
     Write-Host "Publish failed! Stopping deployment." -ForegroundColor Red
@@ -38,7 +39,11 @@ Write-Host "URL: http://drbaheegbook.runasp.net/" -ForegroundColor Yellow
 $publishUrl = "site79455.siteasp.net"
 $siteName = "site79455"
 $username = "site79455"
-$password = "Q#r8_q3D6Nj%"
+$password = $env:DEPLOY_PASSWORD
+if ([string]::IsNullOrEmpty($password)) {
+    Write-Host "ERROR: DEPLOY_PASSWORD environment variable is not set!" -ForegroundColor Red
+    exit 1
+}
 
 # Deploy using dotnet publish with WebDeploy
 Write-Host "Executing WebDeploy..." -ForegroundColor Blue
