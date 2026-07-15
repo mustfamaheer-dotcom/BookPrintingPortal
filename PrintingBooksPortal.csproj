@@ -8,6 +8,15 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="BookShopPortalUI\**\*" />
+    <Compile Remove="BookShopPrintAgent\**\*" />
+    <Content Remove="BookShopPortalUI\**\*" />
+    <Content Remove="BookShopPrintAgent\**\*" />
+    <None Remove="BookShopPortalUI\**\*" />
+    <None Remove="BookShopPrintAgent\**\*" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="itext.bouncy-castle-adapter" Version="9.7.0" />
     <PackageReference Include="itext7" Version="9.7.0" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.9" />
