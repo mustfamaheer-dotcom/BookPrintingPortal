@@ -54,22 +54,48 @@ _ = Task.Run(async () =>
                     {
                         Console.WriteLine($"[BookShopPrintAgent] Found pending job: {jobId}");
 
-                        var claimResponse = await client.PostAsync($"{baseUrl}/api/pdf/print-agent/claim/{jobId}", null);
-                        if (!claimResponse.IsSuccessStatusCode)
+                        try
                         {
-                            Console.WriteLine($"[BookShopPrintAgent] Claim failed for {jobId}, skipping");
-                            continue;
+                            var downloadUrl = $"{baseUrl.TrimEnd('/')}/api/pdf/download-secured/{jobId}";
+                            var dlRequest = new HttpRequestMessage(HttpMethod.Get, downloadUrl);
+                            if (!string.IsNullOrEmpty(apiKey))
+                                dlRequest.Headers.Add("X-Api-Key", apiKey);
+                            var dlResponse = await client.SendAsync(dlRequest);
+                            dlResponse.EnsureSuccessStatusCode();
+                            var encryptedBytes = await dlResponse.Content.ReadAsByteArrayAsync();
+
+                            var claimResponse = await client.PostAsync($"{baseUrl}/api/pdf/print-agent/claim/{jobId}", null);
+                            if (!claimResponse.IsSuccessStatusCode)
+                            {
+                                Console.WriteLine($"[BookShopPrintAgent] Claim failed for {jobId} (already claimed), skipping");
+                                continue;
+                            }
+
+                            var claimJson = await claimResponse.Content.ReadAsStringAsync();
+                            var claimResult = JsonSerializer.Deserialize<ClaimResponse>(claimJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+                            var copies = claimResult?.Copies ?? 1;
+                            Console.WriteLine($"[BookShopPrintAgent] Printing job {jobId}, {copies} copy(ies)...");
+
+                            try
+                            {
+                                await printService.PrintAsync(encryptedBytes, jobId, printerName, copies);
+                                Console.WriteLine($"[BookShopPrintAgent] Job {jobId} completed successfully");
+                            }
+                            catch (Exception printEx)
+                            {
+                                Console.WriteLine($"[BookShopPrintAgent] Print failed for job {jobId}: {printEx.Message}, releasing job back to queue");
+                                try
+                                {
+                                    await client.PostAsync($"{baseUrl}/api/pdf/print-agent/release/{jobId}", null);
+                                }
+                                catch { /* best effort */ }
+                            }
                         }
-
-                        var claimJson = await claimResponse.Content.ReadAsStringAsync();
-                        var claimResult = JsonSerializer.Deserialize<ClaimResponse>(claimJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-
-                        var copies = claimResult?.Copies ?? 1;
-                        Console.WriteLine($"[BookShopPrintAgent] Printing job {jobId}, {copies} copy(ies)...");
-
-                        await printService.DownloadAndPrintAsync(jobId, printerName, copies);
-
-                        Console.WriteLine($"[BookShopPrintAgent] Job {jobId} completed successfully");
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"[BookShopPrintAgent] Failed to process job {jobId}: {ex.Message}");
+                        }
                     }
                 }
             }

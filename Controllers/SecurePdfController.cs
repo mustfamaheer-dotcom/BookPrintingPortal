@@ -358,6 +358,27 @@ public class SecurePdfController : ControllerBase
             return Ok(new { success = true, jobId, copies = info.Copies });
         return NotFound(new { success = false, error = "Job not found or already claimed." });
     }
+
+    [HttpPost("print-agent/release/{jobId}")]
+    [AllowAnonymous]
+    public IActionResult ReleaseJob(string jobId)
+    {
+        if (!IsValidAgentApiKey())
+            return Unauthorized(new { error = "Valid API key required." });
+
+        // Only re-add if not already in the queue
+        if (!PendingPrintJobs.Jobs.ContainsKey(jobId))
+        {
+            PendingPrintJobs.Jobs.TryAdd(jobId, new PendingJobInfo
+            {
+                ShopId = 0,
+                Copies = 1,
+                CreatedAt = DateTime.UtcNow
+            });
+            return Ok(new { success = true, message = "Job returned to pending queue." });
+        }
+        return Ok(new { success = true, message = "Job already in queue." });
+    }
 }
 
 public class ProcessPrintRequest

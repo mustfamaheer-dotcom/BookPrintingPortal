@@ -40,6 +40,14 @@ public class PdfPrintService
         var encryptedBytes = await response.Content.ReadAsByteArrayAsync();
         _logger.LogInformation("Downloaded {Bytes} bytes for job {JobId}", encryptedBytes.Length, jobId);
 
+        await PrintAsync(encryptedBytes, jobId, printerName, copies);
+    }
+
+    public async Task PrintAsync(byte[] encryptedBytes, string jobId, string printerName, int copies)
+    {
+        var ownerPassword = _config.GetValue<string>("ServerSettings:OwnerPassword")
+            ?? throw new InvalidOperationException("ServerSettings:OwnerPassword not configured.");
+
         var decryptedBytes = DecryptPdf(encryptedBytes, ownerPassword);
 
         var tempFile = Path.Combine(Path.GetTempPath(), $"print_{jobId}_{DateTime.Now.Ticks}.pdf");
