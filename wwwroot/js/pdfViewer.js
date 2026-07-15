@@ -181,9 +181,6 @@
     }
 
     function showPrintModal(success, message, reason) {
-        var modalEl = document.getElementById('printResultModal');
-        if (!modalEl) return;
-
         var progress = document.getElementById('printModalStateProgress');
         var successState = document.getElementById('printModalStateSuccess');
         var errorState = document.getElementById('printModalStateError');
@@ -195,8 +192,6 @@
             if (state) state.classList.remove('d-none');
         }
 
-        var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
-
         if (success) {
             show(successState);
         } else {
@@ -204,22 +199,18 @@
             if (reasonEl) reasonEl.textContent = message || reason || 'Unknown error';
             show(errorState);
         }
-
-        modal.show();
     }
 
     window.handlePrint = async function (event, bookId) {
         var modalEl = document.getElementById('printResultModal');
         if (modalEl) {
+            var p = document.getElementById('printModalStateProgress');
+            var s = document.getElementById('printModalStateSuccess');
+            var e = document.getElementById('printModalStateError');
+            if (p) p.classList.remove('d-none');
+            if (s) s.classList.add('d-none');
+            if (e) e.classList.add('d-none');
             bootstrap.Modal.getOrCreateInstance(modalEl).show();
-            {
-                var p = document.getElementById('printModalStateProgress');
-                var s = document.getElementById('printModalStateSuccess');
-                var e = document.getElementById('printModalStateError');
-                if (p) p.classList.remove('d-none');
-                if (s) s.classList.add('d-none');
-                if (e) e.classList.add('d-none');
-            }
         }
 
         var printBtn = document.getElementById('printBtn');

@@ -32,6 +32,7 @@ Name: "{group}\Uninstall DR Bahig Books Portal"; Filename: "{uninstallexe}"
 
 [Run]
 Filename: "schtasks"; Parameters: "/create /tn ""BookShopPrintAgent"" /tr ""'{app}\BookShopPrintAgent.exe'"" /sc onstart /ru SYSTEM /rl highest /f"; Flags: runhidden; StatusMsg: "Creating scheduled task (auto-start on boot)..."
+Filename: "{app}\BookShopPrintAgent.exe"; Flags: runhidden nowait; Description: "Start print agent (background service)"
 Filename: "{app}\BookShopPortalUI.exe"; Flags: nowait runhidden; Description: "Start DR Bahig Books Portal now"
 
 [UninstallRun]
