@@ -204,6 +204,6 @@
         activeShops = await Db.Shops.CountAsync(s => s.IsActive);
         totalBoards = await Db.EducationalBoards.CountAsync(b => b.IsActive);
         totalPrints = await PrintLogging.GetTotalPrintsAsync();
-        recentLogs = await PrintLogging.GetRecentLogsAsync(20);
+        recentLogs = await PrintLogging.GetRecentLogsAsync(5);
     }
 }
