@@ -492,6 +492,17 @@ a:hover { color: var(--primary-dark); }
     display: flex; align-items: center; justify-content: space-between;
     padding: 1rem 1.25rem;
     border-bottom: 1px solid var(--gray-200);
+    cursor: pointer;
+    user-select: none;
+}
+.assign-card-header:hover { background: var(--gray-50); }
+
+.expand-arrow {
+    transition: transform 0.2s ease;
+    color: var(--gray-400);
+}
+.expand-arrow.expanded {
+    transform: rotate(90deg);
 }
 
 .assign-shop-icon {
@@ -1961,9 +1972,28 @@ a:hover { color: var(--primary-dark); }
 
 /* ── User dropdown in header ─────────────────────────────────────────────── */
 .user-dropdown {
+    display: none;
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 0.5rem;
+    min-width: 220px;
+    padding: 0.5rem;
+    background: #fff;
     border-radius: 14px !important;
     border: 1px solid var(--gray-100) !important;
     box-shadow: 0 12px 40px rgba(0,0,0,0.12) !important;
+    z-index: 1050;
+}
+
+.user-dropdown.show {
+    display: block;
+    animation: dropdownFade 0.15s ease;
+}
+
+@keyframes dropdownFade {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 .dropdown-item {

@@ -270,4 +270,12 @@
             if (modalEl) bootstrap.Modal.getOrCreateInstance(modalEl).hide();
         });
     }
+
+    var modalEl = document.getElementById('printResultModal');
+    if (modalEl) {
+        modalEl.addEventListener('hidden.bs.modal', function () {
+            var printBtn = document.getElementById('printBtn');
+            if (printBtn) printBtn.focus({ preventScroll: false });
+        });
+    }
 })();
